@@ -1,18 +1,22 @@
 import "dotenv/config";
-import express from "express";
-import { db } from "./config/db.js"
+import { validateEnv } from "./utils/env.js";
+validateEnv();
 
-const app = express();
+import { db } from "./config/db.js";
+import { app } from "./app.js";
+import logger from "./utils/logger.js";
+
 const PORT = process.env.PORT || 3000;
 async function startServer() {
     try {
         await db.connect();
 
         app.listen(PORT, () => {
-            console.log(`Server running on port ${PORT}`);
+            logger.info(`Server running on port http://localhost:${PORT}`);
+            logger.info(`API documentation at http://localhost:${PORT}/docs/index.html`);
         });
     } catch (error) {
-        console.error("Failed to start server:", error.message);
+        logger.error("Failed to start server", error);
         process.exit(1);
     }
 }
