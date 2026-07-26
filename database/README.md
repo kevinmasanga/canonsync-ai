@@ -288,3 +288,4 @@ canonsync-ai/database/
 ├── schema.sql   — Full schema: extensions, tables, types, indexes
 └── seed.sql     — Sample data for local development
 ```
+
