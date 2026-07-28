@@ -60,8 +60,6 @@ The **CanonSync AI Backend** is a RESTful API for managing television show canon
 backend/
 ├── config/          # Database pool (pg Pool) setup
 ├── controllers/     # HTTP request/response handlers (OOP, bound methods)
-├── database/
-│   └── migrations/  # (empty — schema applied directly via schema.sql)
 ├── middleware/       # Joi validation middleware, logging, error handling
 ├── models/          # ES6 entity classes matching DB tables
 ├── repositories/    # Raw parameterized SQL query layer
