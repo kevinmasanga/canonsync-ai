@@ -20,9 +20,10 @@ class CanonController {
 
     async getAll(req, res) {
         try {
-            const { show_id } = req.query;
-            const canonFacts = await this.canonService.getAllCanonFacts(show_id);
-            return res.status(200).json(canonFacts);
+            // page and limit are already numbers (coerced + defaulted by Joi validation)
+            const { show_id, page, limit } = req.query;
+            const result = await this.canonService.getAllCanonFacts(show_id, { page, limit });
+            return res.status(200).json(result);
         } catch (error) {
             return res.status(error.statusCode || 500).json({ error: error.message });
         }

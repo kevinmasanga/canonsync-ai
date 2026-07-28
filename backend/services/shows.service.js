@@ -9,8 +9,8 @@ class ShowService {
         return await this.showRepository.create(showData);
     }
 
-    async getAllShows() {
-        return await this.showRepository.findAll();
+    async getAllShows({ page, limit } = {}) {
+        return await this.showRepository.findAll({ page, limit });
     }
 
     async getShowById(showId) {

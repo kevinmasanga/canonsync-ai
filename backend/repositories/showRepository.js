@@ -15,14 +15,29 @@ class ShowRepository {
         return result.rows[0] ? new Show(result.rows[0]) : null;
     }
 
-    async findAll() {
-        const query = `
-            SELECT show_id, title, description, created_at
-            FROM shows
-            ORDER BY created_at DESC;
-        `;
-        const result = await this.db.query(query);
-        return result.rows.map(row => new Show(row));
+    async findAll({ page = 1, limit = 20 } = {}) {
+        const offset = (page - 1) * limit;
+
+        const [dataResult, countResult] = await Promise.all([
+            this.db.query(
+                `SELECT show_id, title, description, created_at
+                 FROM shows
+                 ORDER BY created_at DESC
+                 LIMIT $1 OFFSET $2;`,
+                [limit, offset]
+            ),
+            this.db.query(`SELECT COUNT(*)::int AS total FROM shows;`)
+        ]);
+
+        return {
+            data: dataResult.rows.map(row => new Show(row)),
+            pagination: {
+                page,
+                limit,
+                total: countResult.rows[0].total,
+                totalPages: Math.ceil(countResult.rows[0].total / limit)
+            }
+        };
     }
 
     async findById(showId) {

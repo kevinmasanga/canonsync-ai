@@ -22,8 +22,15 @@ function makeValidator(source) {
                 });
             }
 
-            // Replace the source with the sanitised, coerced value
-            req[source] = value;
+            // Replace the source with the sanitised, coerced value.
+            // req.query is a read-only getter on IncomingMessage in Node ≥18,
+            // so we must mutate the existing object instead of reassigning it.
+            if (source === "query") {
+                Object.keys(req.query).forEach(k => delete req.query[k]);
+                Object.assign(req.query, value);
+            } else {
+                req[source] = value;
+            }
             next();
         };
     };

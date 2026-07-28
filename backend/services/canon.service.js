@@ -29,8 +29,8 @@ class CanonService {
         return await this.canonRepository.create(canonData);
     }
 
-    async getAllCanonFacts(showId = null) {
-        return await this.canonRepository.findAll(showId);
+    async getAllCanonFacts(showId = null, { page, limit } = {}) {
+        return await this.canonRepository.findAll(showId, { page, limit });
     }
 
     async getCanonFactById(canonId) {

@@ -13,7 +13,7 @@ async function startServer() {
 
         app.listen(PORT, () => {
             logger.info(`Server running on port http://localhost:${PORT}`);
-            logger.info(`API documentation at http://localhost:${PORT}/docs/index.html`);
+            // logger.info(`API documentation at http://localhost:${PORT}/api-docs`);
         });
     } catch (error) {
         logger.error("Failed to start server", error);

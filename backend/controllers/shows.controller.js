@@ -20,8 +20,10 @@ class ShowController {
 
     async getAll(req, res) {
         try {
-            const shows = await this.showService.getAllShows();
-            return res.status(200).json(shows);
+            // page and limit are already numbers (coerced + defaulted by Joi validation)
+            const { page, limit } = req.query;
+            const result = await this.showService.getAllShows({ page, limit });
+            return res.status(200).json(result);
         } catch (error) {
             return res.status(error.statusCode || 500).json({ error: error.message });
         }
