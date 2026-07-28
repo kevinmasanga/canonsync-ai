@@ -1,14 +1,23 @@
 import { isValidUUID } from "../utils/validate.js";
 
+const VALID_CONFLICT_STATUSES = ['open', 'resolved', 'ignored'];
+
 class ConflictService {
     constructor(conflictRepository, submissionRepository, canonRepository) {
-        this.conflictRepository = conflictRepository;
+        this.conflictRepository  = conflictRepository;
         this.submissionRepository = submissionRepository;
-        this.canonRepository = canonRepository;
+        this.canonRepository     = canonRepository;
     }
 
     async createConflict(conflictData) {
-        const { submission_id, canon_id } = conflictData;
+        const { submission_id, canon_id, status } = conflictData;
+
+        // Validate status ENUM if explicitly provided
+        if (status !== undefined && !VALID_CONFLICT_STATUSES.includes(status)) {
+            const err = new Error(`Invalid status "${status}". Must be one of: ${VALID_CONFLICT_STATUSES.join(', ')}.`);
+            err.statusCode = 400;
+            throw err;
+        }
 
         // Verify submission exists (FK check — business logic, not input validation)
         const submissionExists = await this.submissionRepository.findById(submission_id);
@@ -29,8 +38,8 @@ class ConflictService {
         return await this.conflictRepository.create(conflictData);
     }
 
-    async getAllConflicts(submissionId = null) {
-        return await this.conflictRepository.findAll(submissionId);
+    async getAllConflicts(submissionId = null, { page, limit } = {}) {
+        return await this.conflictRepository.findAll(submissionId, { page, limit });
     }
 
     async getConflictById(conflictId) {
@@ -51,6 +60,14 @@ class ConflictService {
     async updateConflict(conflictId, conflictData) {
         if (!isValidUUID(conflictId)) {
             const err = new Error("Invalid UUID format.");
+            err.statusCode = 400;
+            throw err;
+        }
+
+        // Validate status ENUM if being updated
+        const { status } = conflictData;
+        if (status !== undefined && !VALID_CONFLICT_STATUSES.includes(status)) {
+            const err = new Error(`Invalid status "${status}". Must be one of: ${VALID_CONFLICT_STATUSES.join(', ')}.`);
             err.statusCode = 400;
             throw err;
         }
