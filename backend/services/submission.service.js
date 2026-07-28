@@ -1,13 +1,22 @@
 import { isValidUUID } from "../utils/validate.js";
 
+const VALID_SUBMISSION_STATUSES = ['pending', 'processed', 'failed'];
+
 class SubmissionService {
     constructor(submissionRepository, showRepository) {
         this.submissionRepository = submissionRepository;
-        this.showRepository = showRepository;
+        this.showRepository       = showRepository;
     }
 
     async createSubmission(submissionData) {
-        const { show_id } = submissionData;
+        const { show_id, status } = submissionData;
+
+        // Validate status ENUM if explicitly provided
+        if (status !== undefined && !VALID_SUBMISSION_STATUSES.includes(status)) {
+            const err = new Error(`Invalid status "${status}". Must be one of: ${VALID_SUBMISSION_STATUSES.join(', ')}.`);
+            err.statusCode = 400;
+            throw err;
+        }
 
         // Verify show exists (FK check — business logic, not input validation)
         const showExists = await this.showRepository.findById(show_id);
@@ -20,8 +29,8 @@ class SubmissionService {
         return await this.submissionRepository.create(submissionData);
     }
 
-    async getAllSubmissions(showId = null) {
-        return await this.submissionRepository.findAll(showId);
+    async getAllSubmissions(showId = null, { page, limit } = {}) {
+        return await this.submissionRepository.findAll(showId, { page, limit });
     }
 
     async getSubmissionById(submissionId) {
@@ -42,6 +51,14 @@ class SubmissionService {
     async updateSubmission(submissionId, submissionData) {
         if (!isValidUUID(submissionId)) {
             const err = new Error("Invalid UUID format.");
+            err.statusCode = 400;
+            throw err;
+        }
+
+        // Validate status ENUM if being updated
+        const { status } = submissionData;
+        if (status !== undefined && !VALID_SUBMISSION_STATUSES.includes(status)) {
+            const err = new Error(`Invalid status "${status}". Must be one of: ${VALID_SUBMISSION_STATUSES.join(', ')}.`);
             err.statusCode = 400;
             throw err;
         }

@@ -1,18 +1,24 @@
 // lib/api/conflictApi.js
+// Matches backend's conflict.controller.js / conflict.route.js
 
 import apiClient from "@/lib/apiClient";
 
 export const conflictApi = {
-  async getBySceneId(sceneId) {
-    const { data } = await apiClient.get(`/conflicts/${sceneId}`);
-    return data; // { status, conflicts: [...] }
+  // Was: GET /conflicts/:submissionId (path param — wrong, hits "get by conflict id" instead)
+  // Backend actually expects: GET /conflicts?submission_id=
+  async getBySubmissionId(submissionId) {
+    const { data } = await apiClient.get("/conflicts", {
+      params: { submission_id: submissionId },
+    });
+    return data; // { data: [...conflicts], pagination }
   },
 
-  async resolve(conflictId, { action, reason }) {
-    // action: "revise" | "confirm_retcon" | "dismiss"
-    const { data } = await apiClient.post(`/conflicts/${conflictId}/resolve`, {
-      action,
-      reason,
+  // Was: POST /conflicts/:id/resolve with { action, reason } — wrong method, wrong path, wrong body
+  // Backend actually expects: PATCH /conflicts/:id with { status, reasoning }
+  async resolve(conflictId, { status, reasoning }) {
+    const { data } = await apiClient.patch(`/conflicts/${conflictId}`, {
+      status,
+      reasoning,
     });
     return data;
   },

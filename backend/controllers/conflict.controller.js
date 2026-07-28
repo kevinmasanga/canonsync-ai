@@ -20,9 +20,10 @@ class ConflictController {
 
     async getAll(req, res) {
         try {
-            const { submission_id } = req.query;
-            const conflicts = await this.conflictService.getAllConflicts(submission_id);
-            return res.status(200).json(conflicts);
+            // page and limit are already numbers (coerced + defaulted by Joi validation)
+            const { submission_id, page, limit } = req.query;
+            const result = await this.conflictService.getAllConflicts(submission_id, { page, limit });
+            return res.status(200).json(result);
         } catch (error) {
             return res.status(error.statusCode || 500).json({ error: error.message });
         }

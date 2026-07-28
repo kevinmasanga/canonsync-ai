@@ -1,3 +1,5 @@
+// app/layout.jsx
+
 import "./globals.css";
 import { ToastProvider } from "@/components/common/Toast";
 

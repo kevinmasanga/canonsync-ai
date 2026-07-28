@@ -20,9 +20,10 @@ class SubmissionController {
 
     async getAll(req, res) {
         try {
-            const { show_id } = req.query;
-            const submissions = await this.submissionService.getAllSubmissions(show_id);
-            return res.status(200).json(submissions);
+            // page and limit are already numbers (coerced + defaulted by Joi validation)
+            const { show_id, page, limit } = req.query;
+            const result = await this.submissionService.getAllSubmissions(show_id, { page, limit });
+            return res.status(200).json(result);
         } catch (error) {
             return res.status(error.statusCode || 500).json({ error: error.message });
         }
