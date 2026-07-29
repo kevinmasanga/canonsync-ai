@@ -541,10 +541,6 @@ For example:
 
 As long as each component continues to honor its interface, the rest of the system remains unchanged.
 
-# Boundary Principles
-
-...
-
 # Design Principles
 
 - Separation of Concerns
