@@ -1,26 +1,121 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+html,
+body {
+  background-color: #0a0a0b;
+  color: #e3e2e7;
+  -webkit-font-smoothing: antialiased;
+  font-family: "Manrope", sans-serif;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+.material-symbols-outlined {
+  font-variation-settings: "FILL" 0, "wght" 300, "GRAD" 0, "opsz" 24;
+  vertical-align: middle;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0d0e12;
+}
+::-webkit-scrollbar-thumb {
+  background: #343439;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #ff8a3d;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Card surfaces */
+.glass-card {
+  background: rgba(23, 23, 26, 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid #2a2a2e;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+}
+.glass-card:hover {
+  border-color: #ffb68d;
+  box-shadow: 0px 4px 20px rgba(255, 138, 61, 0.08);
+  transform: translateY(-2px);
+}
+
+.glass-panel {
+  background: rgba(31, 31, 36, 0.6);
+  backdrop-filter: blur(20px);
+  border: 1px solid #2a2a2e;
+}
+
+.auth-card {
+  background-color: #17171a;
+  border: 1px solid #2a2a2e;
+  box-shadow: 0px 4px 24px rgba(255, 138, 61, 0.06);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+.auth-card:hover {
+  border-color: #ffb68d;
+  box-shadow: 0px 4px 32px rgba(255, 138, 61, 0.12);
+}
+
+/* Inputs */
+.input-etched {
+  background-color: #0a0a0b;
+  border: 1px solid #2a2a2e;
+  transition: all 0.2s ease;
+}
+.input-etched:focus {
+  border-color: #ffb68d;
+  box-shadow: 0 0 0 1px rgba(255, 182, 141, 0.2);
+  outline: none;
+}
+
+/* Ambient glow background used on auth pages */
+.ambient-glow {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(255, 138, 61, 0.05) 0%, rgba(10, 10, 11, 0) 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Pill toggles (category selectors, filters) */
+.active-pill {
+  background-color: #ff8a3d;
+  color: #0d0e12;
+  border-color: #ff8a3d;
+}
+
+/* Fade/slide-in used across cards and toasts */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
+.animate-fade-in {
+  animation: fade-in 0.3s ease forwards;
+}
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
