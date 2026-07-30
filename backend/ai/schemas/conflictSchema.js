@@ -43,7 +43,7 @@ export function validateConflict(result) {
         errors.push("message: required non-empty string.");
     }
 
-    // supportingEvidence
+    // supportingEvidence 
     if (!Array.isArray(result.supportingEvidence)) {
         errors.push("supportingEvidence: required array of strings.");
     } else if (result.supportingEvidence.some((e) => typeof e !== "string")) {

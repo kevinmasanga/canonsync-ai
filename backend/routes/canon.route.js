@@ -4,6 +4,8 @@ import CanonRepository from "../repositories/canonRepository.js";
 import ShowRepository from "../repositories/showRepository.js";
 import CanonService from "../services/canon.service.js";
 import CanonController from "../controllers/canon.controller.js";
+import GraniteProvider from "../ai/providers/GraniteProvider.js";
+import EmbeddingService from "../ai/services/EmbeddingService.js";
 import { validateBody, validateQuery } from "../middleware/validate.js";
 import {
     createCanonFactSchema,
@@ -15,13 +17,33 @@ const router = Router();
 
 const canonRepository = new CanonRepository(db);
 const showRepository = new ShowRepository(db);
-const canonService = new CanonService(canonRepository, showRepository);
-const canonController = new CanonController(canonService);
+let canonController = null;
 
-router.post("/",     validateBody(createCanonFactSchema), canonController.create);
-router.get("/",      validateQuery(showIdQuerySchema),    canonController.getAll);
-router.get("/:id",   canonController.getById);
-router.patch("/:id", validateBody(updateCanonFactSchema), canonController.update);
-router.delete("/:id", canonController.delete);
+function getCanonController() {
+    if (!canonController) {
+        const provider = new GraniteProvider();
+        const embeddingService = new EmbeddingService(provider);
+        const canonService = new CanonService(canonRepository, showRepository, embeddingService);
+        canonController = new CanonController(canonService);
+    }
+    return canonController;
+}
+
+function createLazyHandler(methodName) {
+    return async (req, res, next) => {
+        try {
+            const controller = getCanonController();
+            return await controller[methodName](req, res, next);
+        } catch (err) {
+            next(err);
+        }
+    };
+}
+
+router.post("/",     validateBody(createCanonFactSchema), createLazyHandler("create"));
+router.get("/",      validateQuery(showIdQuerySchema),    createLazyHandler("getAll"));
+router.get("/:id",   createLazyHandler("getById"));
+router.patch("/:id", validateBody(updateCanonFactSchema), createLazyHandler("update"));
+router.delete("/:id", createLazyHandler("delete"));
 
 export default router;

@@ -11,7 +11,8 @@ Rules:
 4. Every detected conflict must include supporting evidence from the retrieved canon.
 5. Not every difference is a contradiction — only report when both facts cannot reasonably be true at the same time.
 6. If no contradiction can be established, return a "no conflict" response.
-7. If multiple independent contradictions exist, report each one separately in the conflicts array.
+7. Evaluate the supplied new fact independently against the retrieved canon facts.
+Do not attempt to return multiple contradictions in an array; the expected result is a single conflict object for the one supplied fact.
 
 Severity guidelines:
 - Low      : Minor inconsistency with little narrative impact.

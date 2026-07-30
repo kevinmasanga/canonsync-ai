@@ -1,9 +1,36 @@
 import { isValidUUID } from "../utils/validate.js";
+import logger from "../utils/logger.js";
 
 class CanonService {
-    constructor(canonRepository, showRepository) {
+    constructor(canonRepository, showRepository, embeddingService = null) {
         this.canonRepository = canonRepository;
         this.showRepository = showRepository;
+        this.embeddingService = embeddingService;
+    }
+
+    async _buildEmbeddingText(canonData) {
+        const pieces = [canonData.fact_text];
+        if (canonData.category) pieces.push(`category: ${canonData.category}`);
+        if (canonData.source_episode) pieces.push(`source_episode: ${canonData.source_episode}`);
+        if (canonData.author_name) pieces.push(`author_name: ${canonData.author_name}`);
+        return pieces.filter(Boolean).join(" \n");
+    }
+
+    async _generateEmbedding(canonData) {
+        if (!this.embeddingService) {
+            return null;
+        }
+
+        const text = await this._buildEmbeddingText(canonData);
+        try {
+            return await this.embeddingService.generateEmbeddingForText(text);
+        } catch (err) {
+            logger.warn("CanonService: failed to generate embedding for canon fact", {
+                fact_text: canonData.fact_text,
+                error: err.message,
+            });
+            return null;
+        }
     }
 
     async createCanonFact(canonData) {
@@ -24,6 +51,10 @@ class CanonService {
                 err.statusCode = 404;
                 throw err;
             }
+        }
+
+        if (!canonData.embedding && this.embeddingService) {
+            canonData.embedding = await this._generateEmbedding(canonData);
         }
 
         return await this.canonRepository.create(canonData);
@@ -69,6 +100,14 @@ class CanonService {
                 err.statusCode = 404;
                 throw err;
             }
+        }
+
+        if (this.embeddingService && ("fact_text" in canonData || "category" in canonData || "source_episode" in canonData || "author_name" in canonData)) {
+            const mergedCanon = {
+                ...existingCanon,
+                ...canonData,
+            };
+            canonData.embedding = await this._generateEmbedding(mergedCanon);
         }
 
         return await this.canonRepository.update(canonId, canonData);

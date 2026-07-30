@@ -81,8 +81,26 @@ class GraniteProvider extends LLMProvider {
 
             return generated;
         } catch (error) {
-            logger.error("GraniteProvider.generateContent failed", error);
-            throw new Error(`Granite content generation failed: ${error.message}`);
+            const errorBody = (() => {
+                if (!error) return null;
+                if (typeof error.body === "string") return error.body;
+                if (error.body) return JSON.stringify(error.body, null, 2);
+                if (error.result) return JSON.stringify(error.result, null, 2);
+                return null;
+            })();
+
+            const details = {
+                provider: "IBM Granite",
+                model: this.modelId,
+                status: error?.status ?? null,
+                statusText: error?.statusText ?? null,
+                body: errorBody,
+            };
+
+            logger.error("GraniteProvider.generateContent failed", details);
+
+            const message = error?.message?.trim() || errorBody || error?.statusText || `HTTP ${error?.status ?? "unknown"}`;
+            throw new Error(`Granite content generation failed: ${message}`);
         }
     }
 
@@ -132,12 +150,31 @@ class GraniteProvider extends LLMProvider {
      * @returns {Object}
      */
     getMetadata() {
+        const embeddingDimensions = this._inferEmbeddingDimensions();
+
         return {
             provider: "IBM Granite (watsonx.ai)",
             model: this.modelId,
             embeddingModel: this.embedModel,
+            embeddingDimensions,
             projectId: this.projectId,
         };
+    }
+
+    _inferEmbeddingDimensions() {
+        if (!this.embedModel) {
+            return null;
+        }
+
+        if (this.embedModel.includes("slate-30m")) {
+            return 384;
+        }
+
+        if (this.embedModel.includes("slate-125m")) {
+            return 768;
+        }
+
+        return null;
     }
 }
 

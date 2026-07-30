@@ -1,5 +1,15 @@
 import CanonFact from "../models/CanonFact.js";
 
+function _toVectorLiteral(embedding) {
+    if (embedding === null || embedding === undefined) {
+        return null;
+    }
+    if (Array.isArray(embedding)) {
+        return `[${embedding.join(",")}]`;
+    }
+    return embedding;
+}
+
 class CanonRepository {
     constructor(db) {
         this.db = db;
@@ -12,7 +22,7 @@ class CanonRepository {
             RETURNING canon_id, show_id, category, fact_text, source_episode, embedding, superseded_by, author_name, created_at;
         `;
         const result = await this.db.query(query, [
-            show_id, category, fact_text, source_episode, embedding, superseded_by, author_name
+            show_id, category, fact_text, source_episode, _toVectorLiteral(embedding), superseded_by, author_name
         ]);
         return result.rows[0] ? new CanonFact(result.rows[0]) : null;
     }
@@ -61,19 +71,20 @@ class CanonRepository {
         return result.rows[0] ? new CanonFact(result.rows[0]) : null;
     }
 
-    async update(canonId, { category, fact_text, source_episode, superseded_by, author_name }) {
+    async update(canonId, { category, fact_text, source_episode, embedding = null, superseded_by, author_name }) {
         const query = `
             UPDATE canon_facts
             SET category       = COALESCE($1, category),
                 fact_text      = COALESCE($2, fact_text),
                 source_episode = COALESCE($3, source_episode),
+                embedding      = COALESCE($6, embedding),
                 superseded_by  = COALESCE($4, superseded_by),
                 author_name    = COALESCE($5, author_name)
-            WHERE canon_id = $6
+            WHERE canon_id = $7
             RETURNING canon_id, show_id, category, fact_text, source_episode, embedding, superseded_by, author_name, created_at;
         `;
         const result = await this.db.query(query, [
-            category, fact_text, source_episode, superseded_by, author_name, canonId
+            category, fact_text, source_episode, superseded_by, author_name, _toVectorLiteral(embedding), canonId
         ]);
         return result.rows[0] ? new CanonFact(result.rows[0]) : null;
     }
@@ -109,7 +120,7 @@ class CanonRepository {
             RETURNING canon_id, show_id, category, fact_text, source_episode, embedding, superseded_by, author_name, created_at;
         `;
         const insertResult = await this.db.query(insertQuery, [
-            show_id, category, fact_text, source_episode, embedding, superseded_by, author_name,
+            show_id, category, fact_text, source_episode, _toVectorLiteral(embedding), superseded_by, author_name,
         ]);
 
         if (insertResult.rows[0]) {
