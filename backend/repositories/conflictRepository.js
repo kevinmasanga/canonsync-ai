@@ -15,6 +15,30 @@ class ConflictRepository {
         return result.rows[0] ? new Conflict(result.rows[0]) : null;
     }
 
+    /**
+     * Return an existing conflict row for the given (submission, canon) pair,
+     * or null if none exists.
+     *
+     * Used by ConflictPersistenceService to provide idempotent persistence:
+     * if the pipeline is retried after a crash the same conflict is not inserted
+     * twice.  Relies on the unique constraint uq_conflict_submission_canon added
+     * by migration 003.
+     *
+     * @param {string} submissionId
+     * @param {string} canonId
+     * @returns {Promise<Conflict|null>}
+     */
+    async findBySubmissionAndCanon(submissionId, canonId) {
+        const query = `
+            SELECT conflict_id, submission_id, canon_id, confidence, reasoning, status, created_at, updated_at
+            FROM conflicts
+            WHERE submission_id = $1 AND canon_id = $2
+            LIMIT 1;
+        `;
+        const result = await this.db.query(query, [submissionId, canonId]);
+        return result.rows[0] ? new Conflict(result.rows[0]) : null;
+    }
+
     async findAll(submissionId = null, { page = 1, limit = 20 } = {}) {
         const offset = (page - 1) * limit;
         const filterClause = submissionId ? `WHERE submission_id = $3` : "";

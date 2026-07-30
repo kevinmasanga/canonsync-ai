@@ -23,7 +23,7 @@ export const updateShowSchema = Joi.object({
 
 // ── Canon Facts ──────────────────────────────────────────────────────────────
 
-const CANON_CATEGORIES = ["character", "lore", "timeline", "location", "relationship", "other"];
+const CANON_CATEGORIES = ["character", "lore", "timeline", "location", "relationship", "event", "world_rule", "other"];
 
 export const createCanonFactSchema = Joi.object({
     show_id: uuid().required(),
