@@ -40,8 +40,17 @@ app.use("/api/", limiter);
 
 // 6. Built-in body parsers & logger
 app.use(logRequest);
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+const jsonParser = express.json();
+const urlencodedParser = express.urlencoded({ extended: true });
+app.use((req, res, next) => {
+    if (["GET", "HEAD", "OPTIONS"].includes(req.method)) {
+        return next();
+    }
+    jsonParser(req, res, (err) => {
+        if (err) return next(err);
+        urlencodedParser(req, res, next);
+    });
+});
 
 // 7. Serve API documentation from docs folder
 app.use("/docs", express.static(path.resolve("../docs")));

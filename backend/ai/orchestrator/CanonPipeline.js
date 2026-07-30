@@ -118,6 +118,17 @@ class CanonPipeline {
 
         const { facts, warnings: extractionWarnings } = extractionResult;
 
+        logger.info("CanonPipeline: extracted facts", {
+            submissionId,
+            factCount: facts.length,
+            facts: facts.map((fact) => ({
+                subject: fact.subject,
+                relationship: fact.relationship,
+                object: fact.object ?? null,
+                confidence: fact.confidence,
+            })),
+        });
+
         // ── No facts extracted ───────────────────────────────────────────────
         // Handled here explicitly: mark as processed, return structured result,
         // skip all downstream stages (embedding, retrieval, reasoning, persistence).
@@ -160,15 +171,24 @@ class CanonPipeline {
 
         const { vectors, warnings: embeddingWarnings } = embeddingResult;
 
+        // Diagnostic logging: which facts failed embedding generation
+        const nullVectorIndices = vectors
+            .map((v, idx) => (v ? null : idx))
+            .filter((i) => i !== null);
+        logger.info("CanonPipeline: embedding diagnostic", {
+            totalFacts: facts.length,
+            embeddingsReturned: vectors.filter(Boolean).length,
+            embeddingsNullIndices: nullVectorIndices,
+        });
+
         // ══════════════════════════════════════════════════════════════════════
         // Stage 3 — Semantic Retrieval
         // ══════════════════════════════════════════════════════════════════════
         // MUST run before Stage 4 (canon storage).
         // See class-level "Stage ordering rationale" comment for full explanation.
         //
-        // We search once per fact using that fact's own embedding.  Results are
-        // deduplicated across all fact queries so the same canon record is not
-        // sent to Granite multiple times in Stage 5.
+        // We search once per fact using that fact's own embedding. Each fact's
+        // retrieved canon is compared independently in Stage 5.
         logger.info("CanonPipeline [3/6]: semantic retrieval");
 
         const t3 = Date.now();
@@ -178,7 +198,7 @@ class CanonPipeline {
         // loop in Stage 5 — each fact is only compared against its own retrieved canon.
         const retrievalByFact   = new Array(facts.length).fill(null).map(() => []);
         const retrievalWarnings = [];
-        const seenCanonIds      = new Set();
+        const seenCanonIds     = new Set();
 
         for (let i = 0; i < facts.length; i++) {
             const vector = vectors[i];
@@ -193,11 +213,23 @@ class CanonPipeline {
                     showId,
                 });
 
-                for (const r of results) {
-                    if (!seenCanonIds.has(r.canonFact.canon_id)) {
-                        seenCanonIds.add(r.canonFact.canon_id);
-                        retrievalByFact[i].push(r);
+                retrievalByFact[i].push(...results);
+                results.forEach((result) => {
+                    if (result?.canonFact?.canon_id) {
+                        seenCanonIds.add(result.canonFact.canon_id);
                     }
+                });
+
+                if (results && results.length > 0) {
+                    const topSim = results[0].similarity;
+                    logger.info(`CanonPipeline: retrieval top similarity for fact[${i}]`, {
+                        factIndex: i,
+                        topSimilarity: topSim,
+                        returned: results.length,
+                        canonIds: results.map((r) => r.canonFact.canon_id),
+                    });
+                } else {
+                    logger.info(`CanonPipeline: no retrieval results for fact[${i}]`, { factIndex: i });
                 }
             } catch (err) {
                 // Non-fatal: a retrieval failure for one fact does not block others.
@@ -211,7 +243,8 @@ class CanonPipeline {
         metrics.retrievalMs = Date.now() - t3;
 
         logger.info("CanonPipeline: semantic retrieval complete", {
-            uniqueCanonRetrieved: seenCanonIds.size,
+            factsWithRetrieval: retrievalByFact.filter((list) => list.length > 0).length,
+            totalFactCount: facts.length,
         });
 
         // ══════════════════════════════════════════════════════════════════════
@@ -230,12 +263,12 @@ class CanonPipeline {
             const vector = vectors[i];
 
             try {
-                const canonFact = await this.canonRepository.create({
+                const canonFact = await this.canonRepository.createIfNotExists({
                     show_id:        showId,
                     category:       _inferCategory(fact.relationship),
                     fact_text:      _factToText(fact),
                     source_episode: null,
-                    embedding:      vector ? `[${vector.join(",")}]` : null,
+                    embedding:      vector,
                     superseded_by:  null,
                     author_name:    authorName,
                 });
@@ -263,8 +296,32 @@ class CanonPipeline {
             // Skip reasoning for facts that had no retrieved canon — there is
             // nothing to contradict against.
             if (factRetrieved.length === 0) {
+                logger.info(`CanonPipeline: skipping contradiction analysis for fact[${i}] due to no retrieved canon`, {
+                    factIndex: i,
+                    fact: {
+                        subject: facts[i].subject,
+                        relationship: facts[i].relationship,
+                        object: facts[i].object ?? null,
+                    },
+                });
                 continue;
             }
+
+            logger.info(`CanonPipeline: analyzing fact[${i}] against retrieved canon`, {
+                factIndex: i,
+                fact: {
+                    subject: facts[i].subject,
+                    relationship: facts[i].relationship,
+                    object: facts[i].object ?? null,
+                    confidence: facts[i].confidence,
+                },
+                retrievedCanon: factRetrieved.map((r) => ({
+                    canonId: r.canonFact.canon_id,
+                    category: r.canonFact.category,
+                    factText: r.canonFact.fact_text,
+                    similarity: r.similarity,
+                })),
+            });
 
             try {
                 const result = await this.contradictionAnalysisService.analyzeContradictions(
@@ -279,6 +336,21 @@ class CanonPipeline {
                         conflictResult: result,
                         canonId:        factRetrieved[0].canonFact.canon_id,
                         factIndex:      i,
+                    });
+                    logger.info(`CanonPipeline: fact[${i}] detected conflict`, {
+                        factIndex: i,
+                        conflictResult: {
+                            hasConflict: result.hasConflict,
+                            severity: result.severity,
+                            category: result.category,
+                            confidence: result.confidence,
+                        },
+                    });
+                } else {
+                    logger.info(`CanonPipeline: fact[${i}] did not detect a conflict`, {
+                        factIndex: i,
+                        severity: result.severity,
+                        confidence: result.confidence,
                     });
                 }
             } catch (err) {
