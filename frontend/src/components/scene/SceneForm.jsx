@@ -1,47 +1,23 @@
 // components/scene/SceneForm.jsx
+// Title field removed — no backend equivalent on submissions.
+// Episode reference maps to source_episode.
 
 import Icon from "@/components/common/Icon";
 
-const EPISODES = [
-  "S04 E08: The Glass Horizon",
-  "S04 E09: Residual Echoes",
-  "S04 E10: Terminal Protocol",
-];
-
-export default function SceneForm({ episode, setEpisode, title, setTitle, content, setContent }) {
+export default function SceneForm({ sourceEpisode, setSourceEpisode, content, setContent }) {
   return (
     <>
       {/* Metadata row */}
-      <div className="grid grid-cols-1 gap-card-gap md:grid-cols-12">
-        <div className="flex flex-col gap-2 md:col-span-4">
+      <div className="grid grid-cols-1 gap-card-gap">
+        <div className="flex flex-col gap-2">
           <label className="font-label-caps text-label-caps text-on-surface-variant">
             EPISODE REFERENCE
           </label>
-          <div className="relative">
-            <select
-              value={episode}
-              onChange={(e) => setEpisode(e.target.value)}
-              className="input-etched w-full appearance-none rounded-lg px-4 py-3 font-body-md text-body-md text-on-surface focus:outline-none focus:ring-1 focus:ring-primary"
-            >
-              {EPISODES.map((ep) => (
-                <option key={ep}>{ep}</option>
-              ))}
-            </select>
-            <Icon
-              name="expand_more"
-              className="pointer-events-none absolute right-3 top-3.5 text-on-surface-variant"
-            />
-          </div>
-        </div>
-        <div className="flex flex-col gap-2 md:col-span-8">
-          <label className="font-label-caps text-label-caps text-on-surface-variant">
-            SCENE TITLE
-          </label>
           <input
             type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="e.g. EXT. RAIN-SLICKED ALLEYWAY - NIGHT"
+            value={sourceEpisode}
+            onChange={(e) => setSourceEpisode(e.target.value)}
+            placeholder="e.g. S04 E08"
             className="input-etched w-full rounded-lg px-4 py-3 font-body-md text-body-md text-on-surface focus:outline-none focus:ring-1 focus:ring-primary"
           />
         </div>
