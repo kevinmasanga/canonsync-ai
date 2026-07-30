@@ -7,14 +7,14 @@
 -- ==================================================
 
 INSERT INTO shows (
-    show_id,
     title,
     description
 )
 VALUES (
-    'd4b43fd2-9d3b-4d79-9b53-3d82d5d4c001',
-    'Kingdom of Ashes',
-    'A fantasy drama following Prince Kael as he attempts to unite five rival kingdoms after the disappearance of the legendary Fire Crown.'
+    'The Legend of Korra',
+    'A fantasy adventure series set in a world where individuals can manipulate the elements. 
+    Avatar Korra strives to maintain balance while confronting political unrest, spiritual threats, 
+    and powerful adversaries in a rapidly changing world.'
 );
 
 -- ==================================================
@@ -22,8 +22,6 @@ VALUES (
 -- ==================================================
 
 INSERT INTO canon_facts (
-    canon_id,
-    show_id,
     category,
     fact_text,
     source_episode,
@@ -31,119 +29,80 @@ INSERT INTO canon_facts (
 )
 VALUES
 (
-    'e8e7d0c1-2d6e-4c87-b82d-11f9d4c10001',
-    'd4b43fd2-9d3b-4d79-9b53-3d82d5d4c001',
     'Character',
-    'Prince Kael is the eldest son of King Aldren.',
-    'Episode 1',
-    'Story Editor'
+    'Avatar Korra was born into the Southern Water Tribe and is the successor to Avatar Aang.',
+    'S01E01',
+    'Brian'
 ),
 
 (
-    'e8e7d0c1-2d6e-4c87-b82d-11f9d4c10002',
-    'd4b43fd2-9d3b-4d79-9b53-3d82d5d4c001',
-    'Character',
-    'Prince Kael was born in Ravenshollow.',
-    'Episode 1',
-    'Story Editor'
-),
-
-(
-    'e8e7d0c1-2d6e-4c87-b82d-11f9d4c10003',
-    'd4b43fd2-9d3b-4d79-9b53-3d82d5d4c001',
-    'Character',
-    'Queen Elara died in the year 1018 A.E.',
-    'Episode 2',
-    'Story Editor'
-),
-
-(
-    'e8e7d0c1-2d6e-4c87-b82d-11f9d4c10004',
-    'd4b43fd2-9d3b-4d79-9b53-3d82d5d4c001',
     'Location',
-    'Ravenshollow is the capital city of Ashfall Kingdom.',
-    'Episode 1',
-    'Story Editor'
+    'Republic City was founded as a place where people from all four nations could live together peacefully.',
+    'S01E01',
+    'Elly'
 ),
 
 (
-    'e8e7d0c1-2d6e-4c87-b82d-11f9d4c10005',
-    'd4b43fd2-9d3b-4d79-9b53-3d82d5d4c001',
-    'Artifact',
-    'The Fire Crown disappeared in the year 1024 A.E.',
-    'Episode 1',
-    'Story Editor'
+    'Relationship',
+    'Tenzin is the son of Avatar Aang and serves as Korra''s airbending teacher.',
+    'S01E01',
+    'Kevin'
 ),
 
 (
-    'e8e7d0c1-2d6e-4c87-b82d-11f9d4c10006',
-    'd4b43fd2-9d3b-4d79-9b53-3d82d5d4c001',
-    'Artifact',
-    'Only descendants of House Ember can wield the Fire Crown.',
-    'Episode 3',
-    'Story Editor'
+    'Organization',
+    'The Equalists are led by Amon and oppose the existence of bending in society.',
+    'S01E03',
+    'Dickson'
 ),
 
 (
-    'e8e7d0c1-2d6e-4c87-b82d-11f9d4c10007',
-    'd4b43fd2-9d3b-4d79-9b53-3d82d5d4c001',
     'Character',
-    'General Thorne lost his left eye during the Battle of Black Pass.',
-    'Episode 4',
-    'Story Editor'
+    'Asami Sato is the daughter of Hiroshi Sato and the CEO of Future Industries.',
+    'S01E07',
+    'Brian'
+),
+
+(
+    'Spirit',
+    'Raava is the spirit of light and peace who remains permanently bonded with the Avatar.',
+    'S02E08',
+    'Elly'
 );
 
 -- ==================================================
--- Scene Submission
+-- Scene Submissions
 -- ==================================================
 
 INSERT INTO submissions (
-    submission_id,
-    show_id,
     script,
-    status,
     author_name
-)
-VALUES (
-    'fa7c1f0d-48e6-4b2b-8d8b-c2d5b9b20001',
-    'd4b43fd2-9d3b-4d79-9b53-3d82d5d4c001',
-$$
-INT. THRONE ROOM - DAY
-
-Queen Elara walks into the throne room carrying the legendary Fire Crown.
-
-She places the crown on Prince Kael''s head during her coronation ceremony while the royal court applauds.
-$$,
-    'processed',
-    'Writer A'
-);
-
--- ==================================================
--- AI Conflict Report
--- ==================================================
-
-INSERT INTO conflicts (
-    conflict_id,
-    submission_id,
-    canon_id,
-    confidence,
-    reasoning,
-    status
 )
 VALUES
 (
-    'bb43e3f7-f27f-4d91-96d8-0d7f61000001',
-    'fa7c1f0d-48e6-4b2b-8d8b-c2d5b9b20001',
-    'e8e7d0c1-2d6e-4c87-b82d-11f9d4c10003',
-    0.98,
-    'Canon states that Queen Elara died in 1018 A.E., making her appearance in this scene a continuity contradiction.',
-    'open'
+$$
+Korra arrives in Republic City and begins training under Tenzin to master airbending while adapting to life in the city.
+$$,
+'Kevin'
 ),
+
 (
-    'bb43e3f7-f27f-4d91-96d8-0d7f61000002',
-    'fa7c1f0d-48e6-4b2b-8d8b-c2d5b9b20001',
-    'e8e7d0c1-2d6e-4c87-b82d-11f9d4c10005',
-    0.96,
-    'Canon establishes that the Fire Crown disappeared in 1024 A.E., yet it is used during this scene.',
-    'open'
+$$
+Avatar Aang personally welcomes Korra to Republic City and begins teaching her airbending alongside Tenzin.
+$$,
+'Dickson'
+),
+
+(
+$$
+Amon publicly declares that all citizens should abandon bending and officially announces himself as the leader of the Equalists.
+$$,
+'Brian'
+),
+
+(
+$$
+Asami Sato introduces herself as the daughter of Tenzin and explains that she inherited Air Temple Island from her father.
+$$,
+'Elly'
 );
