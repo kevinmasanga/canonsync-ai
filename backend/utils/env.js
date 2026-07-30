@@ -10,7 +10,10 @@ const REQUIRED_VARS = [
     "DB_PORT",
     "DB_NAME",
     "DB_USER",
-    "DB_PASSWORD"
+    "DB_PASSWORD",
+    "WATSONX_API_KEY",
+    "WATSONX_URL",
+    "WATSONX_PROJECT_ID"
 ];
 
 export function validateEnv() {
