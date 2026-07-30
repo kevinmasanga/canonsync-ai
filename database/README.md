@@ -88,9 +88,7 @@ This single command will:
 - Create all tables and enum types
 - Apply all indexes
 
-### 3. (Optional) Load seed data
-
-If a seed file is available for local development:
+### 3. Load seed data
 
 ```bash
 psql -U postgres -d canonsync -f canonsync-ai/database/seed.sql
