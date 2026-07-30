@@ -1,0 +1,18 @@
+services:
+  db:
+    image: pgvector/pgvector:pg18
+    container_name: canonsync-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: canonsync
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    ports:
+      - "5433:5432"
+    volumes:
+      - canonsync-db-data:/var/lib/postgresql
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/1-schema.sql
+      - ./database/seed.sql:/docker-entrypoint-initdb.d/2-seed.sql
+
+volumes:
+  canonsync-db-data:
