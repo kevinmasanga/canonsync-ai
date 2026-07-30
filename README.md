@@ -317,14 +317,14 @@ npm run dev
 
 | Name | Role |
 |------|------|
-| Brian | Team Lead |
-| Elly | AI and Research Lead |
-| Kevin | Software Lead |
-| Dickson | Documentation & Design Lead |
+| Brian Ngari | Team Lead |
+| Kevin Masanga | Software Lead |
+| Dickson Moseti | Documentation & Design Lead(Project Owner) |
+| Elly Mikera | AI and Research Lead |
 
 
 ---
 
 # License
 
-This project was developed as part of the **IBM AI Builders Challenge**.
+This project was developed as part of the **IBM AI Builders Challenge July Challange**.
