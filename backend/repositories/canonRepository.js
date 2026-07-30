@@ -87,6 +87,53 @@ class CanonRepository {
         const result = await this.db.query(query, [canonId]);
         return result.rows[0] ? new CanonFact(result.rows[0]) : null;
     }
+
+    /**
+     * Semantic similarity search using pgvector cosine distance.
+     *
+     * Returns the Top-K canon facts whose embedding is most similar to the
+     * supplied vector, optionally scoped to a specific show.
+     *
+     * @param {number[]} embedding   — Query vector (must match column dimensions).
+     * @param {string|null} showId   — Optional UUID to scope results to one show.
+     * @param {number} topK          — Maximum number of results to return (default 10).
+     * @returns {Promise<Array<{ canonFact: CanonFact, similarity: number }>>}
+     */
+    async findSimilar(embedding, showId = null, topK = 10) {
+        // pgvector expects the vector literal as a string: '[0.1,0.2,...]'
+        const vectorLiteral = `[${embedding.join(",")}]`;
+
+        const showFilter = showId ? "AND show_id = $3" : "";
+        const params     = showId
+            ? [vectorLiteral, topK, showId]
+            : [vectorLiteral, topK];
+
+        const query = `
+            SELECT
+                canon_id,
+                show_id,
+                category,
+                fact_text,
+                source_episode,
+                embedding,
+                superseded_by,
+                author_name,
+                created_at,
+                1 - (embedding <=> $1::vector) AS similarity
+            FROM canon_facts
+            WHERE embedding IS NOT NULL
+            ${showFilter}
+            ORDER BY embedding <=> $1::vector
+            LIMIT $2;
+        `;
+
+        const result = await this.db.query(query, params);
+
+        return result.rows.map((row) => ({
+            canonFact:  new CanonFact(row),
+            similarity: parseFloat(row.similarity),
+        }));
+    }
 }
 
 export default CanonRepository;
