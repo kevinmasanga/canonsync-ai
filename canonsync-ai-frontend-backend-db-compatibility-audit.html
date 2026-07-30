@@ -1,0 +1,384 @@
+
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CanonSync AI — Wiring Audit</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    background: #ffffff;
+    color: #1f2328;
+    padding: 32px 16px 48px;
+  }
+  .page { max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+  .subtitle { color: #57606a; font-size: 13px; margin-bottom: 28px; }
+  h2 { font-size: 15px; font-weight: 700; margin: 28px 0 10px; padding-bottom: 5px; border-bottom: 1px solid #e5e7eb; }
+  h3 { font-size: 13px; font-weight: 700; margin: 14px 0 6px; color: #1f2328; }
+  p { margin-bottom: 8px; color: #1f2328; }
+
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+  .stat-box {
+    background: #f7f8fa;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    padding: 12px 14px;
+    text-align: center;
+  }
+  .stat-box .num { font-size: 26px; font-weight: 700; }
+  .stat-box .lbl { font-size: 11px; color: #57606a; text-transform: uppercase; letter-spacing: 0.04em; }
+  .num.critical { color: #b91c1c; }
+  .num.warning  { color: #b45309; }
+  .num.info     { color: #3b82d4; }
+  .num.good     { color: #15803d; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 16px; }
+  th { background: #f7f8fa; border: 1px solid #e5e7eb; padding: 7px 10px; text-align: left; font-weight: 600; }
+  td { border: 1px solid #e5e7eb; padding: 7px 10px; vertical-align: top; }
+  tr:nth-child(even) td { background: #fafafa; }
+
+  .badge {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .badge-critical { background: #fee2e2; color: #b91c1c; }
+  .badge-warning  { background: #fef3c7; color: #b45309; }
+  .badge-info     { background: #dbeafe; color: #1d4ed8; }
+  .badge-ok       { background: #dcfce7; color: #15803d; }
+
+  code {
+    font-family: "SFMono-Regular", Consolas, monospace;
+    font-size: 12px;
+    background: #f7f8fa;
+    border: 1px solid #e5e7eb;
+    border-radius: 3px;
+    padding: 1px 5px;
+  }
+  .gap-block {
+    background: #f7f8fa;
+    border: 1px solid #e5e7eb;
+    border-left: 3px solid #b91c1c;
+    border-radius: 4px;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+  }
+  .gap-block.warn {
+    border-left-color: #b45309;
+  }
+  .gap-block.info {
+    border-left-color: #3b82d4;
+  }
+  .gap-title { font-weight: 700; font-size: 13px; margin-bottom: 4px; }
+  .gap-detail { color: #57606a; font-size: 12.5px; }
+  .gap-detail code { font-size: 11.5px; }
+  ul { padding-left: 18px; margin-bottom: 6px; }
+  li { margin-bottom: 3px; }
+  .section-intro { color: #57606a; font-size: 13px; margin-bottom: 12px; }
+
+  footer {
+    margin-top: 40px;
+    padding-top: 12px;
+    border-top: 1px solid #e5e7eb;
+    text-align: center;
+    font-size: 11px;
+    color: #57606a;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <h1>CanonSync AI — Wiring &amp; Compatibility Audit</h1>
+  <p class="subtitle">Frontend ↔ Backend ↔ Database (pgvector) — full gap analysis across all layers</p>
+
+  
+  <div class="summary-grid">
+    <div class="stat-box"><div class="num critical">6</div><div class="lbl">Critical Gaps</div></div>
+    <div class="stat-box"><div class="num warning">7</div><div class="lbl">Warnings</div></div>
+    <div class="stat-box"><div class="num info">3</div><div class="lbl">DB / infra gaps</div></div>
+    <div class="stat-box"><div class="num good">4</div><div class="lbl">Routes correctly wired</div></div>
+  </div>
+
+  
+  <h2>1. Base URL Mismatch</h2>
+  <p class="section-intro">The single most immediate break — every API call will 404 before touching a controller.</p>
+
+  <div class="gap-block">
+    <div class="gap-title"><span class="badge badge-critical">CRITICAL</span>  Frontend targets the wrong API base URL and version prefix</div>
+    <div class="gap-detail">
+      <ul>
+        <li>Frontend <code>apiClient.js</code>: <code>baseURL = http://localhost:5000/api</code></li>
+        <li>Backend <code>server.js</code> default port: <code>3000</code></li>
+        <li>Backend mounts all routes under <code>/api/v1/</code></li>
+      </ul>
+      Two problems in one line: wrong port (<code>5000</code> vs <code>3000</code>) and missing version segment (<code>/api</code> vs <code>/api/v1</code>).
+      Every frontend request resolves to a dead URL.
+    </div>
+  </div>
+
+  
+  <h2>2. Route &amp; Endpoint Mapping</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Domain</th>
+        <th>Backend route</th>
+        <th>Frontend call</th>
+        <th>Match?</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Shows — list</td>
+        <td><code>GET /api/v1/shows</code></td>
+        <td><code>GET /shows</code></td>
+        <td><span class="badge badge-ok">OK (after base fix)</span></td>
+      </tr>
+      <tr>
+        <td>Shows — by ID</td>
+        <td><code>GET /api/v1/shows/:id</code></td>
+        <td><code>GET /shows/:showId</code></td>
+        <td><span class="badge badge-ok">OK (after base fix)</span></td>
+      </tr>
+      <tr>
+        <td>Shows — create</td>
+        <td><code>POST /api/v1/shows</code></td>
+        <td><code>POST /shows</code></td>
+        <td><span class="badge badge-warning">PAYLOAD MISMATCH</span></td>
+      </tr>
+      <tr>
+        <td>Canon — list</td>
+        <td><code>GET /api/v1/canon?show_id=&amp;page=&amp;limit=</code></td>
+        <td><code>GET /canon?showId=&amp;search=&amp;category=</code></td>
+        <td><span class="badge badge-critical">BROKEN</span></td>
+      </tr>
+      <tr>
+        <td>Canon — create</td>
+        <td><code>POST /api/v1/canon</code></td>
+        <td><code>POST /canon</code></td>
+        <td><span class="badge badge-critical">PAYLOAD MISMATCH</span></td>
+      </tr>
+      <tr>
+        <td>Canon — update</td>
+        <td><code>PATCH /api/v1/canon/:id</code></td>
+        <td>Not implemented</td>
+        <td><span class="badge badge-warning">MISSING</span></td>
+      </tr>
+      <tr>
+        <td>Canon — delete</td>
+        <td><code>DELETE /api/v1/canon/:id</code></td>
+        <td>Not implemented</td>
+        <td><span class="badge badge-warning">MISSING</span></td>
+      </tr>
+      <tr>
+        <td>Submissions — create</td>
+        <td><code>POST /api/v1/submissions</code></td>
+        <td><code>POST /submissions</code></td>
+        <td><span class="badge badge-critical">PAYLOAD MISMATCH</span></td>
+      </tr>
+      <tr>
+        <td>Submissions — list</td>
+        <td><code>GET /api/v1/submissions?show_id=</code></td>
+        <td>Not implemented</td>
+        <td><span class="badge badge-warning">MISSING</span></td>
+      </tr>
+      <tr>
+        <td>Conflicts — list by submission</td>
+        <td><code>GET /api/v1/conflicts?submission_id=</code></td>
+        <td><code>GET /conflicts/:submissionId</code></td>
+        <td><span class="badge badge-critical">BROKEN — wrong pattern</span></td>
+      </tr>
+      <tr>
+        <td>Conflicts — resolve</td>
+        <td><code>PATCH /api/v1/conflicts/:id</code></td>
+        <td><code>POST /conflicts/:id/resolve</code></td>
+        <td><span class="badge badge-critical">BROKEN — wrong method &amp; path</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  
+  <h2>3. Payload Mismatches (Detail)</h2>
+
+  <div class="gap-block">
+    <div class="gap-title"><span class="badge badge-critical">CRITICAL</span>  <code>canonApi.getFacts()</code> — wrong query parameter names</div>
+    <div class="gap-detail">
+      Frontend sends: <code>?showId=…&amp;search=…&amp;category=…</code><br />
+      Backend expects: <code>?show_id=…&amp;page=…&amp;limit=…</code><br />
+      <code>showId</code> is camelCase; the Joi schema validates <code>show_id</code> (snake_case) — the filter is silently ignored and <strong>search / category params don't exist at all</strong> in the backend schema or repository layer.
+    </div>
+  </div>
+
+  <div class="gap-block">
+    <div class="gap-title"><span class="badge badge-critical">CRITICAL</span>  <code>canonApi.addFact()</code> — wrong body key</div>
+    <div class="gap-detail">
+      Frontend sends: <code>{ showId, ...fact }</code> (camelCase)<br />
+      Backend createCanonFactSchema requires: <code>show_id</code> (snake_case), plus required fields <code>category</code>, <code>fact_text</code>.<br />
+      The <code>showId</code> key will be stripped by Joi's <code>stripUnknown</code> and <code>show_id</code> will be <code>undefined</code> → validation error 400.
+    </div>
+  </div>
+
+  <div class="gap-block">
+    <div class="gap-title"><span class="badge badge-critical">CRITICAL</span>  <code>submissionApi.submit()</code> — wrong body keys</div>
+    <div class="gap-detail">
+      Frontend sends: <code>{ showId, episodeId, title, content }</code><br />
+      Backend createSubmissionSchema expects: <code>{ show_id, script, author_name }</code><br />
+      <ul>
+        <li><code>showId</code> → should be <code>show_id</code></li>
+        <li><code>content</code> → should be <code>script</code></li>
+        <li><code>episodeId</code> and <code>title</code> have no corresponding backend fields at all</li>
+      </ul>
+      This will always fail Joi validation (missing required <code>show_id</code>, <code>script</code>).
+    </div>
+  </div>
+
+  <div class="gap-block">
+    <div class="gap-title"><span class="badge badge-critical">CRITICAL</span>  <code>conflictApi.getBySubmissionId()</code> — wrong URL pattern</div>
+    <div class="gap-detail">
+      Frontend calls: <code>GET /conflicts/:submissionId</code> (path param)<br />
+      Backend exposes: <code>GET /conflicts?submission_id=…</code> (query param)<br />
+      The backend router has no <code>/conflicts/:id</code> route for listing; the path param hits the "get by conflict_id" endpoint instead, which will return a single conflict object or 404, not a filtered list.
+    </div>
+  </div>
+
+  <div class="gap-block">
+    <div class="gap-title"><span class="badge badge-critical">CRITICAL</span>  <code>conflictApi.resolve()</code> — wrong HTTP method &amp; non-existent path</div>
+    <div class="gap-detail">
+      Frontend calls: <code>POST /conflicts/:id/resolve</code><br />
+      Backend exposes: <code>PATCH /conflicts/:id</code> with body <code>{ status, reasoning, confidence }</code><br />
+      The <code>/resolve</code> sub-resource does not exist. The method is wrong (POST vs PATCH). The body keys <code>{ action, reason }</code> don't match backend fields <code>{ status, reasoning }</code>.
+    </div>
+  </div>
+
+  <div class="gap-block warn">
+    <div class="gap-title"><span class="badge badge-warning">WARNING</span>  <code>showsApi.create()</code> — extra unrecognised field</div>
+    <div class="gap-detail">
+      Frontend sends: <code>{ title, description, seedFacts }</code><br />
+      Backend createShowSchema accepts: <code>{ title, description }</code><br />
+      <code>seedFacts</code> is stripped silently by Joi. No error, but the intent (seeding canon facts on show creation) is never fulfilled — there is no backend logic for this.
+    </div>
+  </div>
+
+  
+  <h2>4. pgvector &amp; Database Layer</h2>
+
+  <div class="gap-block">
+    <div class="gap-title"><span class="badge badge-critical">CRITICAL</span>  No database schema / migration exists</div>
+    <div class="gap-detail">
+      The <code>backend/database/</code> directory does not exist. The git status shows <code>D backend/database/migrations/0001_initial_schema.sql</code> — the migration file was <strong>deleted</strong>.<br />
+      There are no <code>CREATE TABLE</code> statements, no pgvector <code>CREATE EXTENSION</code>, and no index definitions anywhere in the project. The tables <code>shows</code>, <code>canon_facts</code>, <code>submissions</code>, <code>conflicts</code> are assumed to exist but nothing creates them.
+    </div>
+  </div>
+
+  <div class="gap-block">
+    <div class="gap-title"><span class="badge badge-warning">WARNING</span>  pgvector extension never initialised or verified</div>
+    <div class="gap-detail">
+      The <code>canon_facts</code> table includes an <code>embedding</code> column of type <code>vector</code>, and the model/repository reference it. However:<br />
+      <ul>
+        <li>No <code>CREATE EXTENSION IF NOT EXISTS vector;</code> statement exists anywhere</li>
+        <li>No vector index (e.g. <code>CREATE INDEX … USING ivfflat</code> or <code>hnsw</code>) is defined</li>
+        <li>The backend <code>pg</code> driver does not have <code>pgvector</code> registered — the <code>pgvector</code> npm package is absent from <code>backend/package.json</code></li>
+        <li>No semantic search query exists in <code>canonRepository.js</code> despite the embedding column being stored</li>
+      </ul>
+      The embedding field will be stored as a plain JSON array (or fail entirely), and similarity search is completely unimplemented.
+    </div>
+  </div>
+
+  <div class="gap-block">
+    <div class="gap-title"><span class="badge badge-warning">WARNING</span>  No environment file present</div>
+    <div class="gap-detail">
+      No <code>.env</code> or <code>.env.example</code> file exists anywhere in the project. <code>validateEnv()</code> in <code>backend/utils/env.js</code> will throw on startup with <em>"Missing required environment variables"</em> for all five DB vars. The frontend's <code>NEXT_PUBLIC_API_BASE_URL</code> is also undocumented.
+    </div>
+  </div>
+
+  
+  <h2>5. Other Structural &amp; Integration Gaps</h2>
+
+  <div class="gap-block warn">
+    <div class="gap-title"><span class="badge badge-warning">WARNING</span>  Frontend has no pagination support</div>
+    <div class="gap-detail">
+      All backend list endpoints return <code>{ data: [...], pagination: { page, limit, total, totalPages } }</code>.<br />
+      Every frontend API function destructures only <code>data</code> from the response (e.g. <code>return data</code> where <code>data</code> is the full response body). Callers that expect an array will receive an object with a <code>data</code> key and silently lose pagination metadata or break array operations.
+    </div>
+  </div>
+
+  <div class="gap-block warn">
+    <div class="gap-title"><span class="badge badge-warning">WARNING</span>  axios not installed in frontend</div>
+    <div class="gap-detail">
+      <code>apiClient.js</code> imports <code>axios</code>, but <code>frontend/package.json</code> has no <code>axios</code> dependency. The app will crash at runtime with <em>"Cannot find module 'axios'"</em>.
+    </div>
+  </div>
+
+  <div class="gap-block warn">
+    <div class="gap-title"><span class="badge badge-warning">WARNING</span>  Deleted auth files leave references unresolved</div>
+    <div class="gap-detail">
+      Git status shows these files were deleted: <code>AuthContext.jsx</code>, <code>AuthProvider.jsx</code>, <code>useAuth.js</code>, <code>AuthApi.js</code>, <code>ProtectedRoute.jsx</code>, <code>login/page.jsx</code>, <code>register/page.jsx</code>.<br />
+      If any remaining page or component still imports from these paths, it will fail at build time. The backend retains <code>bcrypt</code> and <code>jsonwebtoken</code> dependencies that are now orphaned with no auth routes.
+    </div>
+  </div>
+
+  <div class="gap-block info">
+    <div class="gap-title"><span class="badge badge-info">INFO</span>  <code>submissionApi.jsx</code> — wrong file extension</div>
+    <div class="gap-detail">
+      The file is named <code>submissionApi.jsx</code> but contains no JSX. It should be <code>submissionApi.js</code>. Not a runtime error but will confuse tooling and linters.
+    </div>
+  </div>
+
+  <div class="gap-block info">
+    <div class="gap-title"><span class="badge badge-info">INFO</span>  No AI/LLM integration layer exists yet</div>
+    <div class="gap-detail">
+      The docs directory describes an AI architecture (fact extraction, contradiction analysis), but there is no corresponding service, queue, or LLM client in the backend. The <code>embedding</code> field in <code>canon_facts</code> implies an embedding pipeline, but no code generates or stores embeddings. The "submit script → detect conflicts" flow exists as a data model only.
+    </div>
+  </div>
+
+  
+  <h2>6. What Is Correctly Wired (Backend-internal)</h2>
+  <p class="section-intro">These parts are internally consistent and well-structured — they just need the frontend and DB gaps fixed to function end-to-end.</p>
+  <table>
+    <thead><tr><th>Layer</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td>Route → Controller → Service → Repository dependency injection</td><td><span class="badge badge-ok">Consistent across all 4 domains</span></td></tr>
+      <tr><td>Joi validation schemas match controller field usage</td><td><span class="badge badge-ok">Aligned</span></td></tr>
+      <tr><td>Error status codes propagated correctly through service → controller</td><td><span class="badge badge-ok">Consistent</span></td></tr>
+      <tr><td>CORS, Helmet, rate-limiter, HPP middleware chain</td><td><span class="badge badge-ok">Properly ordered in app.js</span></td></tr>
+    </tbody>
+  </table>
+
+  
+  <h2>7. Suggested Fix Priority</h2>
+  <table>
+    <thead><tr><th>#</th><th>Fix</th><th>Severity</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>Restore (or recreate) <code>0001_initial_schema.sql</code> with all 4 tables + <code>CREATE EXTENSION vector</code></td><td><span class="badge badge-critical">Critical</span></td></tr>
+      <tr><td>2</td><td>Create <code>.env</code> / <code>.env.example</code> with DB vars + <code>NEXT_PUBLIC_API_BASE_URL</code></td><td><span class="badge badge-critical">Critical</span></td></tr>
+      <tr><td>3</td><td>Fix <code>apiClient.js</code> base URL: port 3000, path <code>/api/v1</code></td><td><span class="badge badge-critical">Critical</span></td></tr>
+      <tr><td>4</td><td>Add <code>axios</code> to <code>frontend/package.json</code></td><td><span class="badge badge-critical">Critical</span></td></tr>
+      <tr><td>5</td><td>Fix <code>canonApi</code>: <code>showId</code> → <code>show_id</code>, remove unsupported <code>search</code>/<code>category</code> params; add <code>update</code>/<code>delete</code> methods</td><td><span class="badge badge-critical">Critical</span></td></tr>
+      <tr><td>6</td><td>Fix <code>submissionApi</code>: <code>showId→show_id</code>, <code>content→script</code>, remove <code>episodeId</code>/<code>title</code></td><td><span class="badge badge-critical">Critical</span></td></tr>
+      <tr><td>7</td><td>Fix <code>conflictApi.getBySubmissionId</code>: change to query param <code>GET /conflicts?submission_id=…</code></td><td><span class="badge badge-critical">Critical</span></td></tr>
+      <tr><td>8</td><td>Fix <code>conflictApi.resolve</code>: change to <code>PATCH /conflicts/:id</code> with body <code>{ status, reasoning }</code></td><td><span class="badge badge-critical">Critical</span></td></tr>
+      <tr><td>9</td><td>Add <code>pgvector</code> npm package; register type parser in <code>db.js</code></td><td><span class="badge badge-warning">Warning</span></td></tr>
+      <tr><td>10</td><td>Update all frontend API functions to handle paginated response shape <code>{ data, pagination }</code></td><td><span class="badge badge-warning">Warning</span></td></tr>
+      <tr><td>11</td><td>Audit remaining pages/components for dead imports from deleted auth files</td><td><span class="badge badge-warning">Warning</span></td></tr>
+      <tr><td>12</td><td>Rename <code>submissionApi.jsx</code> → <code>submissionApi.js</code></td><td><span class="badge badge-info">Minor</span></td></tr>
+    </tbody>
+  </table>
+
+  <footer>Made with IBM Bob</footer>
+</div>
+</body>
+</html>
