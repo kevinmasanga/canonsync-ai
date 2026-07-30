@@ -6,7 +6,7 @@ This directory contains the PostgreSQL schema for the CanonSync AI backend.
 
 ## Overview
 
-CanonSync AI is a tool that helps writers and showrunners detect **canon conflicts** in submitted scripts. A *canon fact* is any established piece of story truth for a show — a character trait, a world rule, a timeline event. When a new script is submitted, the AI compares it against the stored canon facts and surfaces anything that contradicts established lore.
+CanonSync AI is a tool that helps writers and showrunners detect **canon conflicts** in submitted scripts. A *canon fact* is any established piece of story truth for a show a character trait, a world rule, a timeline event. When a new script is submitted, the AI compares it against the stored canon facts and surfaces anything that contradicts established lore.
 
 The database is built around four concerns:
 
@@ -88,9 +88,7 @@ This single command will:
 - Create all tables and enum types
 - Apply all indexes
 
-### 3. (Optional) Load seed data
-
-If a seed file is available for local development:
+### 3. Load seed data
 
 ```bash
 psql -U postgres -d canonsync -f canonsync-ai/database/seed.sql
@@ -216,7 +214,7 @@ Understanding what happens on deletion:
 
 ## Re-running the Schema
 
-The schema uses `CREATE TABLE IF NOT EXISTS` throughout, so re-running `schema.sql` against an existing database is safe for tables. However, the two `CREATE TYPE` statements (`submission_status`, `conflict_status`) are **not idempotent** — they will error if the types already exist. To re-apply from scratch, drop and recreate the database:
+The schema uses `CREATE TABLE IF NOT EXISTS` throughout, so re-running `schema.sql` against an existing database is safe for tables. However, the two `CREATE TYPE` statements (`submission_status`, `conflict_status`) are **not idempotent** they will error if the types already exist. To re-apply from scratch, drop and recreate the database:
 
 ```bash
 psql -U postgres -c "DROP DATABASE IF EXISTS canonsync;"
