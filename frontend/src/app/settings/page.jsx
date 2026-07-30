@@ -1,4 +1,6 @@
 // app/settings/page.jsx
+// No user/profile/auth backend exists yet.
+// Hardcoded defaults removed; form is UI-only with a "coming soon" notice.
 
 "use client";
 
@@ -11,23 +13,36 @@ import { useToast } from "@/components/common/Toast";
 
 export default function SettingsPage() {
   const { toast } = useToast();
-  const [fullName, setFullName] = useState("Sarah Jenkins");
-  const [email, setEmail] = useState("s.jenkins@studio.com");
-  const [notifyOnConflict, setNotifyOnConflict] = useState(true);
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [notifyOnConflict, setNotifyOnConflict] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   async function handleSave(e) {
     e.preventDefault();
+    // No profile API exists yet — save to local state only and show notice.
     setIsSaving(true);
-    // TODO: replace with a real profile-update API call
-    await new Promise((r) => setTimeout(r, 600));
+    await new Promise((r) => setTimeout(r, 300));
     setIsSaving(false);
-    toast({ title: "Settings saved", variant: "success" });
+    toast({
+      title: "Preferences saved locally",
+      description: "Profile sync is coming soon — these settings aren't persisted to a server yet.",
+      variant: "info",
+    });
   }
 
   return (
     <AppShell title="Settings">
       <div className="mx-auto max-w-2xl">
+        {/* Coming soon notice */}
+        <div className="mb-6 flex items-start gap-3 rounded-xl border border-outline-variant bg-surface-container-lowest px-5 py-4">
+          <Icon name="construction" size={18} className="mt-0.5 shrink-0 text-primary" />
+          <p className="font-body-md text-body-md text-on-surface-variant">
+            <span className="font-semibold text-on-surface">Profile sync is coming soon.</span>{" "}
+            No user authentication backend exists yet. Changes made here are local to this session only.
+          </p>
+        </div>
+
         <div className="glass-card rounded-xl p-8">
           <form className="space-y-8" onSubmit={handleSave}>
             <section className="space-y-4">

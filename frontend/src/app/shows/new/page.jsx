@@ -8,6 +8,7 @@ import AppShell from "@/components/layout/AppShell";
 import Icon from "@/components/common/Icon";
 import CanonFactRow from "@/components/showform/CanonFactRow";
 import { useToast } from "@/components/common/Toast";
+import { createShow, createCanonFact } from "@/lib/apiClient";
 
 let nextId = 3;
 
@@ -40,24 +41,54 @@ export default function CreateShowPage() {
   }
 
   async function handleSubmit(e) {
-    e.preventDefault();
-    if (!title.trim()) {
-      toast({ title: "Show title is required", variant: "warning" });
-      return;
+  e.preventDefault();
+  if (!title.trim()) {
+    toast({ title: "Show title is required", variant: "warning" });
+    return;
+  }
+
+  setIsSubmitting(true);
+  try {
+    const show = await createShow({ title, description });
+
+    const factRows = rows.filter((r) => r.text.trim());
+    const factResults = await Promise.allSettled(
+      factRows.map((r) =>
+        createCanonFact({
+          show_id: show.show_id,
+          category: r.category,
+          fact_text: r.text,
+        })
+      )
+    );
+
+    const failedCount = factResults.filter((r) => r.status === "rejected").length;
+
+    if (failedCount > 0) {
+      toast({
+        title: "Show created, but some facts failed",
+        description: `${failedCount} of ${factRows.length} seed facts could not be saved.`,
+        variant: "warning",
+      });
+    } else {
+      toast({
+        title: "Show created",
+        description: `"${title}" is ready. Canon store initialized.`,
+        variant: "success",
+      });
     }
 
-    setIsSubmitting(true);
-    // TODO: replace with real showsApi.create({ title, description, seedFacts: rows })
-    await new Promise((r) => setTimeout(r, 800));
-    setIsSubmitting(false);
-
-    toast({
-      title: "Show created",
-      description: `"${title}" is ready. Canon store initialized.`,
-      variant: "success",
-    });
     router.push("/");
+  } catch (err) {
+    toast({
+      title: "Failed to create show",
+      description: err.response?.data?.error || err.message,
+      variant: "error",
+    });
+  } finally {
+    setIsSubmitting(false);
   }
+}
 
   function handleSaveDraft() {
     toast({ title: "Draft saved", variant: "info" });
