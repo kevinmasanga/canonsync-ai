@@ -15,18 +15,27 @@ const PROMPT_PATH = path.resolve(
 );
 
 /**
- * Analyzes newly extracted canon facts against retrieved canon
- * to detect continuity contradictions.
+ * Analyzes a single extracted fact against retrieved canon to detect
+ * continuity contradictions.
  *
  * Responsibilities:
- *   - Load the contradiction analysis prompt template.
- *   - Inject new facts and retrieved canon into the template.
+ *   - Load the contradiction analysis prompt template from disk (cached after first load).
+ *   - Inject one extracted fact and its retrieved canon context into the template.
  *   - Send the prompt to the LLM provider.
- *   - Parse and validate the JSON response against the CanonSync Conflict Schema.
- *   - Return a structured conflict analysis result.
+ *   - Parse the JSON response safely.
+ *   - Retry the LLM call once if the first response cannot be parsed.
+ *   - Validate the result against the CanonSync Conflict Schema.
+ *   - Return a validated conflict result object.
  *
  * This service performs reasoning only.
- * It does not retrieve canon data, persist conflicts, or generate reports.
+ * It does not retrieve canon data, persist conflicts, or generate embeddings.
+ *
+ * Caller contract
+ * ---------------
+ * The caller (CanonPipeline) invokes this service once per extracted fact,
+ * passing that fact and only the canon retrieved for that fact's embedding.
+ * This keeps each analysis context focused and avoids cross-contamination
+ * between unrelated facts from the same scene.
  */
 class ContradictionAnalysisService {
     /**
@@ -49,7 +58,8 @@ class ContradictionAnalysisService {
                 this._promptTemplate = fs.readFileSync(PROMPT_PATH, "utf-8");
             } catch (err) {
                 throw new Error(
-                    `ContradictionAnalysisService: could not load prompt template from ${PROMPT_PATH}: ${err.message}`
+                    `ContradictionAnalysisService: could not load prompt template ` +
+                    `from ${PROMPT_PATH}: ${err.message}`
                 );
             }
         }
@@ -59,47 +69,99 @@ class ContradictionAnalysisService {
     /**
      * Build the full prompt by injecting facts into the template.
      *
-     * @param {Object[]} newFacts      — Newly extracted facts.
-     * @param {Object[]} canonFacts    — Retrieved canon facts (plain objects, not CanonFact models).
+     * @param {Object[]} newFacts    — Newly extracted facts (one element when called per-fact).
+     * @param {Object[]} canonFacts  — Retrieved canon fact summaries (plain objects).
      * @returns {string}
      * @private
      */
     _buildPrompt(newFacts, canonFacts) {
         return this._loadPromptTemplate()
-            .replace("{{newFacts}}", JSON.stringify(newFacts, null, 2))
+            .replace("{{newFacts}}",   JSON.stringify(newFacts,   null, 2))
             .replace("{{canonFacts}}", JSON.stringify(canonFacts, null, 2));
     }
 
     /**
-     * Analyze extracted facts against retrieved canon for contradictions.
+     * Call the LLM provider and attempt to parse the response as a conflict object.
+     * Retries once if the first response cannot be parsed.
      *
-     * @param {Object[]} newFacts       — Facts extracted from the submitted scene.
-     * @param {Object[]} retrievedFacts — Top-K canon facts from semantic search
-     *                                    (each is { canonFact, similarity }).
-     * @returns {Promise<Object>}       — Validated conflict result conforming to the Conflict Schema.
-     * @throws {Error}                  — If the provider fails or returns an invalid response.
+     * Retry rationale: matches the pattern in FactExtractionService — Granite
+     * occasionally emits a preamble before the JSON object on the first attempt.
+     * A single retry recovers from this without masking genuine failures.
+     *
+     * @param {string} prompt
+     * @param {number} attempt  — 1 (first call) or 2 (retry)
+     * @returns {Promise<{ raw: string, parsed: * }>}
+     * @throws {Error} — After two failed parse attempts.
+     * @private
+     */
+    async _callAndParse(prompt, attempt = 1) {
+        let raw;
+        try {
+            raw = await this.provider.generateContent({ prompt, temperature: 0.1 });
+        } catch (err) {
+            throw new Error(
+                `ContradictionAnalysisService: LLM call failed (attempt ${attempt}) — ${err.message}`
+            );
+        }
+
+        if (!raw || raw.trim().length === 0) {
+            return { raw: "", parsed: null };
+        }
+
+        try {
+            const parsed = parseJSON(raw);
+            return { raw, parsed };
+        } catch (parseErr) {
+            if (attempt === 1) {
+                logger.info(
+                    "ContradictionAnalysisService: JSON parse failed on attempt 1 — retrying",
+                    {
+                        parseError: parseErr.message,
+                        rawPreview: raw.slice(0, 120),
+                    }
+                );
+                return this._callAndParse(prompt, 2);
+            }
+            throw new Error(
+                `ContradictionAnalysisService: could not parse LLM response after 2 attempts — ` +
+                `${parseErr.message}`
+            );
+        }
+    }
+
+    /**
+     * Analyze one extracted fact against retrieved canon for contradictions.
+     *
+     * @param {Object[]} newFacts       — Facts to analyze (one element in per-fact mode).
+     * @param {Object[]} retrievedFacts — Top-K canon results for this fact's embedding.
+     *                                    Each element: { canonFact: CanonFact, similarity: number }
+     * @returns {Promise<Object>}       — Validated conflict result (CanonSync Conflict Schema).
+     * @throws {Error}                  — If the provider fails or both parse attempts fail.
      */
     async analyzeContradictions(newFacts, retrievedFacts) {
         if (!Array.isArray(newFacts)) {
             throw new Error("ContradictionAnalysisService: newFacts must be an array.");
         }
 
-        // If there is nothing to reason about on either side, return no-conflict immediately
+        // Nothing to reason about — return no-conflict immediately without an LLM call
         if (newFacts.length === 0) {
             logger.info("ContradictionAnalysisService: no new facts — skipping analysis.");
             return _noConflictResult("No new facts were extracted from the scene.");
         }
 
-        // Extract just the canon fact data for the prompt (drop similarity scores)
-        const canonFactObjects = (retrievedFacts || []).map((r) => {
-            const cf = r.canonFact;
-            return {
-                canon_id:       cf.canon_id,
-                fact_text:      cf.fact_text,
-                category:       cf.category,
-                source_episode: cf.source_episode,
-            };
-        });
+        // If no relevant canon was retrieved, there is nothing to contradict
+        if (!retrievedFacts || retrievedFacts.length === 0) {
+            logger.info("ContradictionAnalysisService: no retrieved canon — skipping analysis.");
+            return _noConflictResult("No existing canon was found for comparison.");
+        }
+
+        // Distill retrieved entries to just the fields the prompt needs
+        const canonFactObjects = retrievedFacts.map(({ canonFact }) => ({
+            canon_id:       canonFact.canon_id,
+            fact_text:      canonFact.fact_text,
+            category:       canonFact.category,
+            source_episode: canonFact.source_episode,
+        }));
 
         logger.info("ContradictionAnalysisService: starting contradiction analysis", {
             newFactCount:   newFacts.length,
@@ -108,30 +170,21 @@ class ContradictionAnalysisService {
         });
 
         const prompt = this._buildPrompt(newFacts, canonFactObjects);
+        const { raw, parsed } = await this._callAndParse(prompt);
 
-        let raw;
-        try {
-            raw = await this.provider.generateContent({ prompt, temperature: 0.1 });
-        } catch (err) {
-            throw new Error(`ContradictionAnalysisService: LLM call failed — ${err.message}`);
-        }
-
+        // Empty LLM response — treat as no conflict rather than hard-failing
         if (!raw || raw.trim().length === 0) {
-            logger.info("ContradictionAnalysisService: LLM returned empty response, treating as no conflict.");
+            logger.info(
+                "ContradictionAnalysisService: LLM returned empty response — treating as no conflict."
+            );
             return _noConflictResult("LLM returned an empty response.");
-        }
-
-        let parsed;
-        try {
-            parsed = parseJSON(raw);
-        } catch (err) {
-            throw new Error(`ContradictionAnalysisService: could not parse LLM response — ${err.message}`);
         }
 
         const { valid, errors } = validateConflict(parsed);
         if (!valid) {
             throw new Error(
-                `ContradictionAnalysisService: LLM response failed schema validation — ${errors.join("; ")}`
+                `ContradictionAnalysisService: LLM response failed schema validation — ` +
+                `${errors.join("; ")}`
             );
         }
 
@@ -146,7 +199,7 @@ class ContradictionAnalysisService {
 }
 
 /**
- * Build a canonical "no conflict" result object.
+ * Canonical "no conflict" result.
  *
  * @param {string} [message]
  * @returns {Object}
