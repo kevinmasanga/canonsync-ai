@@ -1,20 +1,20 @@
-CanonSync AI
+# CanonSync AI
 
-An AI-powered continuity engine that helps television writers maintain story consistency by detecting canon conflicts before scripts are finalized.
+> **An AI-powered continuity engine that helps television writers maintain story consistency by detecting canon conflicts before scripts are finalized.**
 
 CanonSync AI helps writers and story editors maintain a consistent source of truth ("canon") for television shows by automatically detecting continuity conflicts in newly submitted scenes. By combining semantic search, vector embeddings, and IBM Granite, the platform enables writers to identify inconsistencies before scripts move into production, helping preserve narrative quality across episodes and seasons.
 
 ---
 
-IBM AI Builders Challenge Theme
+# IBM AI Builders Challenge Theme
 
-Theme: Reimagine Creative Industries with AI
+**Theme:** *Reimagine Creative Industries with AI*
 
 CanonSync AI demonstrates how generative AI can enhance the creative writing process by assisting television writers and story editors in preserving narrative continuity. Rather than replacing creativity, the platform augments writers with intelligent canon management, semantic search, and AI-powered contradiction detection using IBM technologies.
 
 ---
 
-Problem Statement
+# Problem Statement
 
 Television writers often work collaboratively across multiple episodes and seasons. As a story grows, maintaining continuity becomes increasingly difficult. Small inconsistencies—such as changes to a character's background, timeline, relationships, or previously established events—can lead to continuity errors that reduce the quality, credibility, and consistency of a show.
 
@@ -24,7 +24,7 @@ CanonSync AI addresses this challenge by maintaining a structured canon database
 
 ---
 
-Solution
+# Solution
 
 CanonSync AI provides a centralized canon repository where established story facts are stored and semantically indexed.
 
@@ -40,8 +40,9 @@ This workflow allows writers to focus on storytelling while AI assists with cont
 
 ---
 
-MVP Workflow
+# MVP Workflow
 
+```text
 Create Show
       ↓
 Seed Initial Canon
@@ -59,11 +60,13 @@ IBM Granite performs contradiction reasoning
 Conflict Report
       ↓
 Store Conflict
+```
 
 ---
 
-AI Architecture
+# AI Architecture
 
+```text
 Writer
    │
    ▼
@@ -85,57 +88,58 @@ PostgreSQL + pgvector
 IBM watsonx.ai
       ├── IBM Granite
       └── IBM Slate Embeddings
+```
 
 ---
 
-Technology Stack
+# Technology Stack
 
-Frontend
+## Frontend
 
 - Next.js
 
-Backend
+## Backend
 
 - Node.js
 - Express.js
 
-Database
+## Database
 
 - PostgreSQL
 - pgvector
 
-AI
+## AI
 
 - IBM Granite 3 8B Instruct
 - IBM Slate Embedding Model
 - IBM watsonx.ai
 
-Cloud Platform
+## Cloud Platform
 
 - IBM Cloud
 
-Collaboration & Version Control
+## Collaboration & Version Control
 
 - Git
 - GitHub
 
 ---
 
-IBM Technologies Used
+# IBM Technologies Used
 
 CanonSync AI is built around IBM's AI ecosystem.
 
-- IBM Bob – Primary AI-assisted development tool used throughout implementation.
-- IBM watsonx.ai – Hosts and serves the AI models used by the application.
-- IBM Granite 3 8B Instruct – Extracts structured canon facts and performs contradiction reasoning.
-- IBM Slate Embedding Model – Generates semantic vector embeddings for similarity search.
-- IBM Cloud – Provides the runtime infrastructure supporting the AI services.
+- **IBM Bob** – Primary AI-assisted development tool used throughout implementation.
+- **IBM watsonx.ai** – Hosts and serves the AI models used by the application.
+- **IBM Granite 3 8B Instruct** – Extracts structured canon facts and performs contradiction reasoning.
+- **IBM Slate Embedding Model** – Generates semantic vector embeddings for similarity search.
+- **IBM Cloud** – Provides the runtime infrastructure supporting the AI services.
 
 These technologies form the core intelligence behind CanonSync AI.
 
 ---
 
-How IBM Bob Was Used
+# How IBM Bob Was Used
 
 IBM Bob served as the team's primary AI-assisted development companion throughout the project.
 
@@ -152,17 +156,15 @@ It was used to:
 IBM Bob accelerated development while allowing the team to retain full ownership of architectural decisions, implementation, testing, and validation.
 
 ---
-
 # Database Design
-Database Design
 
 The MVP consists of four primary tables.
 
-Shows
+## Shows
 
 Stores television show projects.
 
-Example fields:
+**Example fields**
 
 - Show title
 - Description
@@ -170,7 +172,7 @@ Example fields:
 
 ---
 
-Canon Facts
+## Canon Facts
 
 Stores established facts that define a show's official canon.
 
@@ -180,13 +182,13 @@ Each fact contains:
 - Fact text
 - Source episode
 - Vector embedding
-- Version reference ("superseded_by")
+- Version reference (`superseded_by`)
 - Author name
 - Creation timestamp
 
 ---
 
-Submissions
+## Submissions
 
 Stores scenes submitted for AI analysis.
 
@@ -199,7 +201,7 @@ Each submission includes:
 
 ---
 
-Conflicts
+## Conflicts
 
 Stores AI-generated continuity conflict reports.
 
@@ -213,7 +215,7 @@ Each conflict contains:
 
 ---
 
-Database Schema
+# Database Schema
 
 The database uses PostgreSQL relational modeling with foreign key constraints to maintain data integrity.
 
@@ -223,11 +225,11 @@ The database uses PostgreSQL relational modeling with foreign key constraints to
 - One show can have many submissions.
 - One submission can generate many conflicts.
 - One canon fact can be referenced by many conflicts.
-- Canon facts support versioning through the "superseded_by" self-reference.
+- Canon facts support versioning through the `superseded_by` self-reference.
 
 ---
 
-AI Pipeline
+# AI Pipeline
 
 CanonSync AI follows the workflow below:
 
@@ -242,8 +244,9 @@ CanonSync AI follows the workflow below:
 
 ---
 
-Project Structure
+# Project Structure
 
+```text
 canonsync-ai/
 │
 ├── frontend/
@@ -253,66 +256,85 @@ canonsync-ai/
 │   ├── seed.sql
 │   └── migrations/
 └── README.md
+```
 
 ---
 
-Installation Guide
+# Installation Guide
 
-Clone the Repository
+## Clone the Repository
 
+```bash
 git clone https://github.com/kevinmasanga/canonsync-ai.git
+```
 
 Navigate into the project.
 
+```bash
 cd canonsync-ai
+```
 
 ---
 
-PostgreSQL Setup
+# PostgreSQL Setup
 
 Create the project database.
 
+```sql
 CREATE DATABASE canonsync;
+```
 
 Enable pgvector.
 
+```sql
 CREATE EXTENSION IF NOT EXISTS vector;
+```
 
 ---
 
-Database Setup
+# Database Setup
 
 Create the schema.
 
+```bash
 psql -U postgres -d canonsync -f database/schema.sql
+```
 
 Populate the database with sample data.
 
+```bash
 psql -U postgres -d canonsync -f database/seed.sql
+```
 
 Run any required migrations.
 
+```bash
 psql -U postgres -d canonsync -f database/migrations/002_embedding_dimensions.sql
+```
 
 ---
 
-Running the Project
+# Running the Project
 
-Backend
+## Backend
 
+```bash
 cd backend
 npm install
 npm run dev
+```
 
-Frontend
+## Frontend
 
+```bash
 cd frontend
 npm install
 npm run dev
+```
 
 ---
 
-Key Features
+# Key Features
 
 - AI-powered canon fact extraction
 - Semantic search using vector embeddings
@@ -325,7 +347,7 @@ Key Features
 
 ---
 
-Future Work
+# Future Work
 
 Future versions of CanonSync AI may include:
 
@@ -338,7 +360,7 @@ Future versions of CanonSync AI may include:
 
 ---
 
-Demo
+# Demo
 
 A demonstration video showcasing CanonSync AI is available as part of the IBM AI Builders Challenge submission.
 
@@ -351,6 +373,10 @@ A demonstration video showcasing CanonSync AI is available as part of the IBM AI
 | Brian Ngari | Project Lead & AI Integration |
 | Kevin Masanga | Software & Backend Lead |
 | Dickson Moseti | Frontend Lead & Project Owner |
-| Elly Mikera | Database & Documentation Lead 
+| Elly Mikera | Database & Documentation Lead |
 
-This project was developed as part of the IBM AI Builders Challenge – Reimagine Creative Industries with AI.
+---
+
+# License
+
+This project was developed as part of the **IBM AI Builders Challenge – Reimagine Creative Industries with AI**.
