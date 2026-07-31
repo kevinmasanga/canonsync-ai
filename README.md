@@ -156,7 +156,6 @@ It was used to:
 IBM Bob accelerated development while allowing the team to retain full ownership of architectural decisions, implementation, testing, and validation.
 
 ---
-
 # Database Design
 
 The MVP consists of four primary tables.
