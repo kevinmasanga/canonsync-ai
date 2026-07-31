@@ -35,14 +35,21 @@ class Logger {
         });
     }
 
+    warn(message, meta) {
+        const rawMsg = this._formatMessage("warn", message, meta);
+        const timestamp = new Date().toISOString();
+        const formatted = `${colors.timestamp}[${timestamp}]${colors.reset} ${colors.error}[WARN]${colors.reset} ${message}${meta ? ` | ${colors.timestamp}${JSON.stringify(meta)}${colors.reset}` : ""}`;
+
+        process.stderr.write(formatted + "\n");
+        this._writeToFile(this.combinedLogPath, rawMsg);
+    }
+
     info(message, meta) {
         const rawMsg = this._formatMessage("info", message, meta);
         const timestamp = new Date().toISOString();
-        
-        console.log(
-            `${colors.timestamp}[${timestamp}]${colors.reset} ${colors.info}[INFO]${colors.reset} ${message}${meta ? ` | ${colors.timestamp}${JSON.stringify(meta)}${colors.reset}` : ""}`
-        );
+        const formatted = `${colors.timestamp}[${timestamp}]${colors.reset} ${colors.info}[INFO]${colors.reset} ${message}${meta ? ` | ${colors.timestamp}${JSON.stringify(meta)}${colors.reset}` : ""}`;
 
+        process.stdout.write(formatted + "\n");
         this._writeToFile(this.combinedLogPath, rawMsg);
     }
 
@@ -57,11 +64,9 @@ class Logger {
 
         const rawMsg = this._formatMessage("error", message, meta);
         const timestamp = new Date().toISOString();
+        const formatted = `${colors.timestamp}[${timestamp}]${colors.reset} ${colors.error}[ERROR]${colors.reset} ${message}${meta ? ` | ${colors.error}${JSON.stringify(meta)}${colors.reset}` : ""}`;
 
-        console.error(
-            `${colors.timestamp}[${timestamp}]${colors.reset} ${colors.error}[ERROR]${colors.reset} ${message}${meta ? ` | ${colors.error}${JSON.stringify(meta)}${colors.reset}` : ""}`
-        );
-
+        process.stderr.write(formatted + "\n");
         this._writeToFile(this.combinedLogPath, rawMsg);
         this._writeToFile(this.errorLogPath, rawMsg);
     }

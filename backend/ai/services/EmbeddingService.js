@@ -40,13 +40,18 @@ class EmbeddingService {
 
         // Read at construction time (not module-load time) so that dotenv has
         // already been initialised when the provider is first instantiated.
-        // Default intentionally omitted here — callers must set EMBEDDING_DIMENSIONS
-        // in .env after running migration 002.  We fall back to 384 only as a
-        // last resort to avoid a crash in environments without the variable.
-        this.expectedDimensions = parseInt(
-            process.env.EMBEDDING_DIMENSIONS || "384",
-            10
-        );
+        const envDimensionsRaw = process.env.EMBEDDING_DIMENSIONS;
+        const envDimensions = envDimensionsRaw ? parseInt(envDimensionsRaw, 10) : null;
+
+        const providerMetadata = provider?.getMetadata?.() ?? {};
+        const providerDimensions = providerMetadata.embeddingDimensions ?? null;
+
+        this.expectedDimensions = envDimensions || providerDimensions || 384;
+        this.dimensionSource = envDimensions
+            ? "EMBEDDING_DIMENSIONS"
+            : providerDimensions
+                ? "provider metadata"
+                : "default fallback";
     }
 
     /**
@@ -72,15 +77,28 @@ class EmbeddingService {
      * @returns {Promise<number[]>}  — Embedding vector.
      * @throws {Error}              — If the provider call fails or returns an empty vector.
      */
-    async generateEmbedding(fact) {
-        if (!fact || typeof fact !== "object") {
-            throw new Error("EmbeddingService.generateEmbedding: fact must be a plain object.");
+    async _validateVector(vector, context) {
+        if (!Array.isArray(vector) || vector.length === 0) {
+            throw new Error(`EmbeddingService: ${context} returned an invalid or empty embedding.`);
         }
 
-        const text = this._factToText(fact);
+        if (vector.length !== this.expectedDimensions) {
+            const message = `EmbeddingService: dimension mismatch for ${context} — expected ${this.expectedDimensions} (${this.dimensionSource}), got ${vector.length}. ` +
+                `Update EMBEDDING_DIMENSIONS to match your embedding model output and verify the canon_facts.embedding column is the same VECTOR dimension.`;
+            logger.error(message, {
+                provider: this.provider.getMetadata?.().provider,
+                embeddingModel: this.provider.getMetadata?.().embeddingModel,
+                expectedDimensions: this.expectedDimensions,
+                actualDimensions: vector.length,
+                dimensionSource: this.dimensionSource,
+            });
+            throw new Error(message);
+        }
+    }
 
+    async _generateEmbeddingForText(text, contextDescription = "text") {
         logger.info("EmbeddingService: generating embedding", {
-            factText: text,
+            context: contextDescription,
             provider: this.provider.getMetadata().provider,
         });
 
@@ -91,23 +109,25 @@ class EmbeddingService {
             throw new Error(`EmbeddingService: provider embedding call failed — ${err.message}`);
         }
 
-        if (!Array.isArray(vector) || vector.length === 0) {
-            throw new Error("EmbeddingService: provider returned an invalid or empty embedding.");
-        }
-
-        if (vector.length !== this.expectedDimensions) {
-            // Warn rather than hard-fail — the pipeline can still proceed, but
-            // inserting a mismatched vector into PostgreSQL will fail at the DB
-            // level.  This log entry is the earliest signal of a config problem.
-            logger.error(
-                `EmbeddingService: dimension mismatch — ` +
-                `expected ${this.expectedDimensions}, got ${vector.length}. ` +
-                `Ensure EMBEDDING_DIMENSIONS in .env matches the model output ` +
-                `and migration 002 has been applied to the database schema.`
-            );
-        }
-
+        await this._validateVector(vector, contextDescription);
         return vector;
+    }
+
+    async generateEmbedding(fact) {
+        if (!fact || typeof fact !== "object") {
+            throw new Error("EmbeddingService.generateEmbedding: fact must be a plain object.");
+        }
+
+        const text = this._factToText(fact);
+        return await this._generateEmbeddingForText(text, `fact: ${text}`);
+    }
+
+    async generateEmbeddingForText(text) {
+        if (typeof text !== "string" || text.trim().length === 0) {
+            throw new Error("EmbeddingService.generateEmbeddingForText: input text must be a non-empty string.");
+        }
+
+        return await this._generateEmbeddingForText(text.trim(), "submission text");
     }
 
     /**

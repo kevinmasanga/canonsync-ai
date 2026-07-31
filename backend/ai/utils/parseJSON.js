@@ -40,6 +40,59 @@ export function parseJSON(raw) {
     try {
         return JSON.parse(cleaned);
     } catch (err) {
+        // Fallback: try to salvage a balanced JSON substring in case the
+        // model truncated output or appended non-JSON text after a valid
+        // JSON value. We scan for the first '[' or '{' and then find the
+        // matching closing bracket while respecting string quoting and
+        // escapes so we don't get fooled by braces inside strings.
+        const salvage = (() => {
+            const s = cleaned;
+            const startIdx = s.search(/[\[{]/);
+            if (startIdx === -1) return null;
+
+            const open = s[startIdx];
+            const closing = open === "{" ? "}" : "]";
+
+            let depth = 0;
+            let inString = false;
+            let escape = false;
+            for (let i = startIdx; i < s.length; i++) {
+                const ch = s[i];
+
+                if (escape) {
+                    escape = false;
+                    continue;
+                }
+                if (ch === "\\") {
+                    escape = true;
+                    continue;
+                }
+                if (ch === '"') {
+                    inString = !inString;
+                    continue;
+                }
+                if (inString) continue;
+
+                if (ch === open) depth++;
+                else if (ch === closing) {
+                    depth--;
+                    if (depth === 0) {
+                        // return substring from startIdx to i inclusive
+                        return s.slice(startIdx, i + 1);
+                    }
+                }
+            }
+            return null;
+        })();
+
+        if (salvage) {
+            try {
+                return JSON.parse(salvage);
+            } catch (err2) {
+                // fall through to final error below
+            }
+        }
+
         throw new Error(
             `parseJSON: failed to parse LLM response as JSON. ` +
             `Parse error: ${err.message}. ` +

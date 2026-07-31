@@ -52,16 +52,47 @@ class ConflictPersistenceService {
         // Build the reasoning string from all available conflict detail
         const reasoning = _buildReasoning(conflictResult);
 
-        let conflict;
+        // Idempotent persistence: if a conflict row already exists for this
+        // (submission, canon) pair, return it instead of attempting another
+        // insert. This handles pipeline retries and prevents unique constraint
+        // violations on `uq_conflict_submission_canon`.
+        let conflict = null;
         try {
+            const existing = await this.conflictRepository.findBySubmissionAndCanon(submissionId, canonId);
+            if (existing) {
+                logger.info("ConflictPersistenceService: conflict already exists — returning existing record", {
+                    submissionId,
+                    canonId,
+                    conflictId: existing.conflict_id,
+                });
+                return existing;
+            }
+
+            // Compose the record including useful metadata fields. The repository
+            // will skip columns that don't exist in the database schema.
             conflict = await this.conflictRepository.create({
                 submission_id: submissionId,
                 canon_id:      canonId,
+                has_conflict:  true,
+                category:      conflictResult.category ?? null,
+                severity:      conflictResult.severity ?? null,
                 confidence:    conflictResult.confidence,
+                supporting_evidence: conflictResult.supportingEvidence ?? [],
                 reasoning,
                 status:        "open",
             });
         } catch (err) {
+            // If we hit a duplicate-key race (concurrent insert by another
+            // worker), fetch and return the existing row. Otherwise, surface
+            // the original error.
+            if (err.message && err.message.includes('duplicate key')) {
+                try {
+                    const existing = await this.conflictRepository.findBySubmissionAndCanon(submissionId, canonId);
+                    if (existing) return existing;
+                } catch (fetchErr) {
+                    logger.error('ConflictPersistenceService: failed to recover after duplicate-key', fetchErr);
+                }
+            }
             throw new Error(`ConflictPersistenceService: database write failed — ${err.message}`);
         }
 
