@@ -153,6 +153,7 @@ IBM Bob accelerated development while allowing the team to retain full ownership
 
 ---
 
+# Database Design
 Database Design
 
 The MVP consists of four primary tables.
@@ -216,7 +217,7 @@ Database Schema
 
 The database uses PostgreSQL relational modeling with foreign key constraints to maintain data integrity.
 
-Relationships:
+### Relationships
 
 - One show can have many canon facts.
 - One show can have many submissions.
@@ -343,15 +344,18 @@ A demonstration video showcasing CanonSync AI is available as part of the IBM AI
 
 ---
 
-Team Members
+# Team Members
 
+| Name | Role |
+|------|------|
+| Brian Ngari | Project Lead & AI Integration |
+| Kevin Masanga | Software & Backend Lead |
+| Dickson Moseti | Frontend Lead & Project Owner |
+| Elly Mikera | Database & Documentation Lead 
 Name| Role
 Brian Ngari| Project Lead & AI Integration
 Kevin Masanga| Software & Backend Lead
-Dickson Moseti| Frontend Lead & Project Owner
-Elly Mikera| Database & Documentation Lead
----
-
+Dickson Moseti| Frontend Lead & Project
 License
 
 This project was developed as part of the IBM AI Builders Challenge – Reimagine Creative Industries with AI.
