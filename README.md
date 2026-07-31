@@ -352,10 +352,5 @@ A demonstration video showcasing CanonSync AI is available as part of the IBM AI
 | Kevin Masanga | Software & Backend Lead |
 | Dickson Moseti | Frontend Lead & Project Owner |
 | Elly Mikera | Database & Documentation Lead 
-Name| Role
-Brian Ngari| Project Lead & AI Integration
-Kevin Masanga| Software & Backend Lead
-Dickson Moseti| Frontend Lead & Project
-License
 
 This project was developed as part of the IBM AI Builders Challenge – Reimagine Creative Industries with AI.
