@@ -1,30 +1,42 @@
 # CanonSync AI
 
-An AI-powered continuity engine for television writers' rooms.
+> **An AI-powered continuity engine that helps television writers maintain story consistency by detecting canon conflicts before scripts are finalized.**
 
-CanonSync AI helps writers and story editors maintain a consistent source of truth ("canon") for television shows by detecting continuity conflicts in newly submitted scenes. The system combines PostgreSQL, pgvector, and IBM Granite to perform semantic search and AI-powered contradiction detection.
+CanonSync AI helps writers and story editors maintain a consistent source of truth ("canon") for television shows by automatically detecting continuity conflicts in newly submitted scenes. By combining semantic search, vector embeddings, and IBM Granite, the platform enables writers to identify inconsistencies before scripts move into production, helping preserve narrative quality across episodes and seasons.
+
+---
+
+# IBM AI Builders Challenge Theme
+
+**Theme:** *Reimagine Creative Industries with AI*
+
+CanonSync AI demonstrates how generative AI can enhance the creative writing process by assisting television writers and story editors in preserving narrative continuity. Rather than replacing creativity, the platform augments writers with intelligent canon management, semantic search, and AI-powered contradiction detection using IBM technologies.
 
 ---
 
 # Problem Statement
 
-Television writers often work collaboratively across multiple episodes and seasons. As a story grows, maintaining continuity becomes increasingly difficult. Small inconsistencies—such as changes to a character's background, timeline, or established events—can lead to continuity errors that reduce the quality and consistency of a show.
+Television writers often work collaboratively across multiple episodes and seasons. As a story grows, maintaining continuity becomes increasingly difficult. Small inconsistencies such as changes to a character's background, timeline, relationships, or previously established events can lead to continuity errors that reduce the quality, credibility, and consistency of a show.
 
-CanonSync AI addresses this problem by maintaining a structured canon database and automatically detecting contradictions before scripts are finalized.
+Traditional documentation methods quickly become difficult to maintain as the volume of story information increases. Writers often spend valuable creative time manually searching previous scripts to verify facts.
+
+CanonSync AI addresses this challenge by maintaining a structured canon database and automatically detecting contradictions before scripts are finalized.
 
 ---
 
 # Solution
 
-CanonSync AI provides a centralized canon repository where established story facts are stored.
+CanonSync AI provides a centralized canon repository where established story facts are stored and semantically indexed.
 
 When a writer submits a new scene:
 
-- IBM Granite extracts structured facts from the scene.
-- Embeddings are generated for semantic understanding.
-- pgvector searches for similar canon facts.
-- IBM Granite determines whether contradictions exist.
-- A conflict report is generated and presented to the user.
+- IBM Granite extracts structured canon facts.
+- IBM Slate generates semantic embeddings for each extracted fact.
+- PostgreSQL with pgvector retrieves the most semantically similar existing canon.
+- IBM Granite evaluates whether contradictions exist between the new scene and established canon.
+- A structured conflict report is generated for the writer before publication.
+
+This workflow allows writers to focus on storytelling while AI assists with continuity verification.
 
 ---
 
@@ -37,15 +49,13 @@ Seed Initial Canon
       ↓
 Submit Scene
       ↓
-IBM Granite extracts facts
+IBM Granite extracts structured facts
       ↓
-Generate Embeddings
+IBM Slate generates embeddings
       ↓
-Store Embeddings
+Semantic search using pgvector
       ↓
-pgvector Semantic Search
-      ↓
-IBM Granite Contradiction Reasoning
+IBM Granite performs contradiction reasoning
       ↓
 Conflict Report
       ↓
@@ -54,54 +64,108 @@ Store Conflict
 
 ---
 
-# System Architecture
+# AI Architecture
 
 ```text
+Writer
+   │
+   ▼
 Frontend (Next.js)
-        │
-        ▼
+   │
+   ▼
 Backend (Node.js + Express)
-        │
-        ▼
+   │
+   ├── Fact Extraction
+   ├── Embedding Generation
+   ├── Semantic Retrieval
+   ├── Contradiction Analysis
+   └── Conflict Persistence
+   │
+   ▼
 PostgreSQL + pgvector
-        │
-        ▼
-IBM Granite AI
+   │
+   ▼
+IBM watsonx.ai
+      ├── IBM Granite
+      └── IBM Slate Embeddings
 ```
 
 ---
 
 # Technology Stack
 
-### Frontend
+## Frontend
+
 - Next.js
 
-### Backend
+## Backend
+
 - Node.js
 - Express.js
 
-### Database
+## Database
+
 - PostgreSQL
 - pgvector
 
-### AI
-- IBM Granite
+## AI
 
-### Collaboration and Version Control
+- IBM Granite 3 8B Instruct
+- IBM Slate Embedding Model
+- IBM watsonx.ai
+
+## Cloud Platform
+
+- IBM Cloud
+
+## Collaboration & Version Control
+
 - Git
 - GitHub
 
 ---
 
+# IBM Technologies Used
+
+CanonSync AI is built around IBM's AI ecosystem.
+
+- **IBM Bob** – Primary AI-assisted development tool used throughout implementation.
+- **IBM watsonx.ai** – Hosts and serves the AI models used by the application.
+- **IBM Granite 3 8B Instruct** – Extracts structured canon facts and performs contradiction reasoning.
+- **IBM Slate Embedding Model** – Generates semantic vector embeddings for similarity search.
+- **IBM Cloud** – Provides the runtime infrastructure supporting the AI services.
+
+These technologies form the core intelligence behind CanonSync AI.
+
+---
+
+# How IBM Bob Was Used
+
+IBM Bob served as the team's primary AI-assisted development companion throughout the project.
+
+It was used to:
+
+- Design the overall AI architecture.
+- Plan the CanonPipeline orchestration workflow.
+- Assist with backend implementation and debugging.
+- Refine prompt engineering for fact extraction and contradiction analysis.
+- Support IBM Granite integration with watsonx.ai.
+- Review implementation decisions and suggest improvements.
+- Assist with technical documentation and developer workflows.
+
+IBM Bob accelerated development while allowing the team to retain full ownership of architectural decisions, implementation, testing, and validation.
+
+---
+
 # Database Design
 
-The MVP consists of four main tables.
+The MVP consists of four primary tables.
 
 ## Shows
 
 Stores television show projects.
 
-Example:
+**Example fields**
 
 - Show title
 - Description
@@ -111,14 +175,14 @@ Example:
 
 ## Canon Facts
 
-Stores all established facts that make up a show's canon.
+Stores established facts that define a show's official canon.
 
 Each fact contains:
 
 - Category
 - Fact text
 - Source episode
-- Embedding
+- Vector embedding
 - Version reference (`superseded_by`)
 - Author name
 - Creation timestamp
@@ -127,7 +191,7 @@ Each fact contains:
 
 ## Submissions
 
-Stores scenes submitted by writers for AI analysis.
+Stores scenes submitted for AI analysis.
 
 Each submission includes:
 
@@ -156,7 +220,7 @@ Each conflict contains:
 
 The database uses PostgreSQL relational modeling with foreign key constraints to maintain data integrity.
 
-Relationships:
+### Relationships
 
 - One show can have many canon facts.
 - One show can have many submissions.
@@ -172,28 +236,26 @@ CanonSync AI follows the workflow below:
 
 1. Writer submits a scene.
 2. IBM Granite extracts structured facts.
-3. Embeddings are generated.
-4. Embeddings are stored in PostgreSQL.
-5. pgvector performs semantic similarity search.
-6. IBM Granite reasons over the retrieved canon facts.
-7. Conflict reports are generated.
-8. Conflict reports are stored for future reference.
+3. IBM Slate generates semantic embeddings.
+4. pgvector retrieves the most relevant canon facts.
+5. IBM Granite reasons over the retrieved canon.
+6. Potential continuity conflicts are identified.
+7. Structured conflict reports are generated.
+8. Results are stored for future reference and presented to the writer.
 
 ---
 
 # Project Structure
 
 ```text
-caononsync-ai/
+canonsync-ai/
 │
 ├── frontend/
-│
 ├── backend/
-│
 ├── database/
 │   ├── schema.sql
 │   ├── seed.sql
-│
+│   └── migrations/
 └── README.md
 ```
 
@@ -204,20 +266,18 @@ caononsync-ai/
 ## Clone the Repository
 
 ```bash
-git clone https://github.com/kevinmasanga/canonsync-ai.git
+git clone https://github.com/KevinMasanga/canonsync-ai.git
 ```
 
 Navigate into the project.
 
 ```bash
-cd CanonSync-ai
+cd canonsync-ai
 ```
 
 ---
 
 # PostgreSQL Setup
-
-Install PostgreSQL.
 
 Create the project database.
 
@@ -225,9 +285,7 @@ Create the project database.
 CREATE DATABASE canonsync;
 ```
 
-Install the pgvector extension if it is not already available.
-
-The schema automatically enables it using:
+Enable pgvector.
 
 ```sql
 CREATE EXTENSION IF NOT EXISTS vector;
@@ -237,7 +295,7 @@ CREATE EXTENSION IF NOT EXISTS vector;
 
 # Database Setup
 
-Build the database schema.
+Create the schema.
 
 ```bash
 psql -U postgres -d canonsync -f database/schema.sql
@@ -249,67 +307,63 @@ Populate the database with sample data.
 psql -U postgres -d canonsync -f database/seed.sql
 ```
 
----
+Run any required migrations.
 
-# Indexes
-
-The database includes several indexes to improve query performance.
-
-## idx_canon_show
-
-Retrieves canon facts belonging to a specific show efficiently.
-
----
-
-## idx_submission_show
-
-Optimizes retrieval of submissions for a show.
-
----
-
-## idx_conflict_canon
-
-Improves lookup of conflicts associated with a canon fact.
-
----
-
-## idx_canon_fact_text (GIN)
-
-Supports fast full-text search on canon facts.
-
-Useful for:
-
-- Keyword search
-- Natural language search
-- Canon exploration
-
----
-
-## idx_canon_embedding (HNSW)
-
-Supports efficient semantic similarity search using pgvector.
-
-Instead of comparing every embedding stored in the database, PostgreSQL uses the HNSW index to quickly retrieve the most semantically similar canon facts.
-
-This index is a core component of the CanonSync AI continuity engine.
+```bash
+psql -U postgres -d canonsync -f database/migrations/002_embedding_dimensions.sql
+```
 
 ---
 
 # Running the Project
 
-### Backend
+## Backend
 
 ```bash
+cd backend
 npm install
 npm run dev
 ```
 
-### Frontend
+## Frontend
 
 ```bash
+cd frontend
 npm install
 npm run dev
 ```
+
+---
+
+# Key Features
+
+- AI-powered canon fact extraction
+- Semantic search using vector embeddings
+- Automatic continuity conflict detection
+- Canon version management
+- Structured conflict reporting
+- PostgreSQL + pgvector vector database integration
+- IBM Granite reasoning pipeline
+- IBM Slate embedding generation
+
+---
+
+# Future Work
+
+Future versions of CanonSync AI may include:
+
+- Timeline visualization
+- Character relationship graphs
+- Multi-show knowledge management
+- Real-time script editor integration
+- Collaborative writers' room features
+- Advanced conflict resolution suggestions
+
+---
+
+# Demo
+
+A demonstration video showcasing CanonSync AI is available as part of the IBM AI Builders Challenge submission.
 
 ---
 
@@ -317,14 +371,13 @@ npm run dev
 
 | Name | Role |
 |------|------|
-| Brian Ngari | Team Lead |
-| Kevin Masanga | Software Lead |
-| Dickson Moseti | Documentation & Design Lead(Project Owner) |
-| Elly Mikera | AI and Research Lead |
-
+| Brian Ngari | Project Lead & AI Integration |
+| Kevin Masanga | Software & Backend Lead |
+| Dickson Moseti | Frontend Lead & Project Owner |
+| Elly Mikera | Database & Documentation Lead |
 
 ---
 
 # License
 
-This project was developed as part of the **IBM AI Builders Challenge July Challange**.
+This project was developed as part of the **IBM AI Builders Challenge – Reimagine Creative Industries with AI**.
